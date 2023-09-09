@@ -1,0 +1,8 @@
+server:
+  port: 443
+  ssl:
+    key-store: ${GATE_KEY_CERT_PATH:classpath:certificate.pfw}
+    key-store-password: ${GATE_KEY_CERT_PASSWORD}
+    key-store-type: pkcs12
+security.require-ssl: true
+    
