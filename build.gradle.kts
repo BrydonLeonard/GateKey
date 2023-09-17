@@ -7,10 +7,16 @@ plugins {
     kotlin("plugin.spring") version "1.8.22"
     kotlin("kapt") version "1.9.10"
     id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
+    application
+}
+
+application {
+    mainClass.set("com.brydonleonard.gatekey.GateKeyApplicationKt")
+    applicationName = "GateKey"
 }
 
 group = "com.brydonleonard"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17

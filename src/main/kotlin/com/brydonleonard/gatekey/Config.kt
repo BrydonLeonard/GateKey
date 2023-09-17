@@ -5,11 +5,11 @@ import org.springframework.stereotype.Component
 
 @Component
 class Config(
-    @Value("\${ALLOWED_CALLERS:}")
+    @Value("\${GATE_KEY_ALLOWED_CALLERS:}")
     val allowedCallersRaw: String,
-    @Value("\${DB_PATH:KeyDb.db}")
+    @Value("\${GATE_KEY_DB_PATH:KeyDb.db}")
     val dbPath: String,
-    @Value("\${TELEGRAM_BOT_TOKEN}")
+    @Value("\${GATE_KEY_TELEGRAM_BOT_TOKEN}")
     val telegramBotToken: String
 
 ) {
