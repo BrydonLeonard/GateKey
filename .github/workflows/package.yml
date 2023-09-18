@@ -59,7 +59,7 @@ jobs:
         command_timeout: 30m
         script: | 
           # Pull the image from docker hub
-          docker image pull brydonleonard/gate_key:action-dev-1
+          docker image pull brydonleonard/gate_key:mainline
 
           # Create the volume. Does nothing if the volume exists
           docker volume create \
@@ -82,5 +82,5 @@ jobs:
             --volume GateKeyVolume:/persistent \
             --name=GateKey \
             --detach \
-            brydonleonard/gate_key:action-dev-1
+            brydonleonard/gate_key:mainline
           
