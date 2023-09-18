@@ -9,7 +9,7 @@ object UserRegistrationTokenQueries {
     fun createToken(dbManager: DbManager, token: UserRegistrationTokenModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 insert into user_registration_tokens
                 values (?, ?, ?)
                 """.trimIndent()
@@ -26,7 +26,7 @@ object UserRegistrationTokenQueries {
     fun deleteToken(dbManager: DbManager, token: UserRegistrationTokenModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 delete from user_registration_tokens 
                 where token = ?
                 """.trimIndent()
@@ -41,7 +41,7 @@ object UserRegistrationTokenQueries {
     fun getToken(dbManager: DbManager, tokenString: String): UserRegistrationTokenModel? {
         return dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 select * from user_registration_tokens where token = ?
                 """.trimIndent()
             )
@@ -60,7 +60,7 @@ object UserRegistrationTokenQueries {
     fun getTokensWithExpiryBefore(dbManager: DbManager, timestamp: Instant): List<UserRegistrationTokenModel> {
         return dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 select * from user_registration_tokens where expiry < ?
                 """.trimIndent()
             )
@@ -79,9 +79,9 @@ object UserRegistrationTokenQueries {
     }
 
     private fun ResultSet.toRegistrationToken() = UserRegistrationTokenModel(
-        getString(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.TOKEN.name),
-        getLong(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.EXPIRY.name),
-        getString(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.PERMISSIONS.name)
-            .split(",").map { com.brydonleonard.gatekey.auth.Permissions.valueOf(it) }.toSet()
+            getString(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.TOKEN.name),
+            getLong(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.EXPIRY.name),
+            getString(com.brydonleonard.gatekey.persistence.DbManager.UserRegistrationTokensFields.PERMISSIONS.name)
+                    .split(",").map { com.brydonleonard.gatekey.auth.Permissions.valueOf(it) }.toSet()
     )
 }

@@ -35,17 +35,17 @@ class KeyManagerTest {
     fun `tryUseKey only sets first use if is is unset`(shouldSet: Boolean) {
         val subject = KeyManager(dbManager)
         `when`(dbManager.withConnection<List<KeyModel>>(any()))
-            .thenReturn(
-                listOf(
-                    KeyModel(
-                        "123456",
-                        Instant.now().plus(5.minutes.toJavaDuration()).epochSecond,
-                        true,
-                        "test",
-                        if (shouldSet) Instant.now().minus(1.minutes.toJavaDuration()).epochSecond else null
-                    )
+                .thenReturn(
+                        listOf(
+                                KeyModel(
+                                        "123456",
+                                        Instant.now().plus(5.minutes.toJavaDuration()).epochSecond,
+                                        true,
+                                        "test",
+                                        if (shouldSet) Instant.now().minus(1.minutes.toJavaDuration()).epochSecond else null
+                                )
+                        )
                 )
-            )
 
         val result = subject.tryUseKey("123456")
 
@@ -56,22 +56,22 @@ class KeyManagerTest {
         }
     }
 
-    @ParameterizedTest(name = "[{index}] {2}")
+    @ParameterizedTest(name = "[{index}] {3}")
     @MethodSource("keyIsValidTestInput")
     fun `keyIsValid tests`(
-        deltaMinutesExpiry: Int,
-        deltaMinutesFirstUse: Int?,
-        shouldBeValid: Boolean,
-        testName: String
+            deltaMinutesExpiry: Int,
+            deltaMinutesFirstUse: Int?,
+            shouldBeValid: Boolean,
+            testName: String
     ) {
         val subject = KeyManager(dbManager)
         val now = Instant.now()
         val key = KeyModel(
-            "123456",
-            now.plus(deltaMinutesExpiry.minutes.toJavaDuration()).epochSecond,
-            true,
-            "test",
-            deltaMinutesFirstUse?.let { now.plus(it.minutes.toJavaDuration()).epochSecond }
+                "123456",
+                now.plus(deltaMinutesExpiry.minutes.toJavaDuration()).epochSecond,
+                true,
+                "test",
+                deltaMinutesFirstUse?.let { now.plus(it.minutes.toJavaDuration()).epochSecond }
         )
 
         assertEquals(shouldBeValid, subject.keyIsValid(key))
@@ -80,11 +80,11 @@ class KeyManagerTest {
     companion object {
         @JvmStatic
         fun keyIsValidTestInput(): Stream<Arguments> = Stream.of(
-            Arguments.of(60, null, true, "Keys are valid prior to expiry"),
-            Arguments.of(60, -2, true, "Keys are valid for five minutes after their first use"),
-            Arguments.of(-10, -2, true, "Keys are valid for five minutes after their first use, even if they expire"),
-            Arguments.of(-10, null, false, "Expired keys are invalid"),
-            Arguments.of(-10, -10, false, "Expired keys that have been used are invalid")
+                Arguments.of(60, null, true, "Keys are valid prior to expiry"),
+                Arguments.of(60, -2, true, "Keys are valid for five minutes after their first use"),
+                Arguments.of(-10, -2, true, "Keys are valid for five minutes after their first use, even if they expire"),
+                Arguments.of(-10, null, false, "Expired keys are invalid"),
+                Arguments.of(-10, -10, false, "Expired keys that have been used are invalid")
         )
     }
 }

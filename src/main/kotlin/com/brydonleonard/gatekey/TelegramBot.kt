@@ -27,11 +27,11 @@ import java.util.UUID
 
 @Component
 class TelegramBot(
-    val keyManager: KeyManager,
-    val authHandler: AuthHandler,
-    val userRegistrationManager: UserRegistrationManager,
-    val conversationHandler: ConversationHandler,
-    val config: Config
+        val keyManager: KeyManager,
+        val authHandler: AuthHandler,
+        val userRegistrationManager: UserRegistrationManager,
+        val conversationHandler: ConversationHandler,
+        val config: Config
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
@@ -44,8 +44,8 @@ class TelegramBot(
 
     fun sendMessage(chatId: Long, message: String) {
         bot.sendMessage(
-            chatId = ChatId.fromId(chatId),
-            text = message
+                chatId = ChatId.fromId(chatId),
+                text = message
         )
     }
 
@@ -59,17 +59,17 @@ class TelegramBot(
                 command("createKey") {
                     if (authorized(Permissions.CREATE_KEY)) {
                         val message = bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = "Who will the key be for?",
-                            replyMarkup = ForceReplyMarkup()
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = "Who will the key be for?",
+                                replyMarkup = ForceReplyMarkup()
                         )
 
                         conversationHandler.awaitResponse(
-                            ConversationStepModel(
-                                this.message.chat.id,
-                                message.get().messageId,
-                                ConversationStepType.CREATE_SINGLE_USE_TOKEN
-                            )
+                                ConversationStepModel(
+                                        this.message.chat.id,
+                                        message.get().messageId,
+                                        ConversationStepType.CREATE_SINGLE_USE_TOKEN
+                                )
                         )
                     }
                     return@command
@@ -78,16 +78,16 @@ class TelegramBot(
                 command("listKeys") {
                     if (authorized(Permissions.LIST_KEYS)) {
                         val keys =
-                            keyManager.getActiveKeys().joinToString("\n") {
-                                val assigneeSuffix = if (it.assignee != null) " (for ${it.assignee})" else ""
-                                "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
-                            }
+                                keyManager.getActiveKeys().joinToString("\n") {
+                                    val assigneeSuffix = if (it.assignee != null) " (for ${it.assignee})" else ""
+                                    "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
+                                }
 
                         logger.info { keys }
 
                         bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = keys
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = keys
                         )
                     }
                     return@command
@@ -98,13 +98,13 @@ class TelegramBot(
                         val token = userRegistrationManager.generateNewUserToken(PermissionBundle.ADMIN)
 
                         bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = "A token has been created for the new user. Here's the link:"
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = "A token has been created for the new user. Here's the link:"
                         )
 
                         bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = "https://t.me/LeonardHomeBot?start=${token.token}"
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = UserRegistrationManager.tokenToLink(token.token)
                         )
                     }
                     return@command
@@ -117,33 +117,32 @@ class TelegramBot(
                     logger.info { args.toString() }
                     if (authHandler.userExists(this.message.from!!.id.toString())) {
                         bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = "This account is already registered.",
-                            replyMarkup = keyboard()
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = "This account is already registered.",
+                                replyMarkup = keyboard()
                         )
                     } else {
                         try {
                             UUID.fromString(args[0])
 
                             userRegistrationManager.createUserFromToken(
-                                args[0],
-                                this.message.from!!.id.toString(),
-                                this.message.from!!.let { "${it.firstName} ${it.lastName}" },
-                                this.message.chat.id
+                                    args[0],
+                                    this.message.from!!.id.toString(),
+                                    this.message.from!!.let { "${it.firstName} ${it.lastName}" },
+                                    this.message.chat.id
                             )
 
                             bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "Your account has been registered. Welcome to GateKey!" +
-                                    "Create keys with the options in the menu below or type " +
-                                    "/listCommands for a list of valid commands.",
-                                replyMarkup = keyboard()
+                                    chatId = ChatId.fromId(message.chat.id),
+                                    text = "Your account has been registered. Welcome to GateKey! " +
+                                            "Create keys with the options in the menu below",
+                                    replyMarkup = keyboard()
                             )
                         } catch (e: IllegalArgumentException) {
                             logger.error(e) { "Failed to register user" }
                             bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "The token is invalid"
+                                    chatId = ChatId.fromId(message.chat.id),
+                                    text = "The token is invalid"
                             )
                         }
                     }
@@ -153,36 +152,35 @@ class TelegramBot(
                 message(UUIDFilter.not() and Filter.Command.not()) {
                     if (authHandler.userExists(this.message.from!!.id.toString())) {
                         val conversationStep = conversationHandler.checkForConversation(
-                            this.message.chat.id,
-                            this.message.replyToMessage?.messageId
+                                this.message.chat.id,
+                                this.message.replyToMessage?.messageId
                         )
 
                         if (conversationStep != null &&
-                            conversationStep.conversationStepType == ConversationStepType.CREATE_SINGLE_USE_TOKEN
+                                conversationStep.conversationStepType == ConversationStepType.CREATE_SINGLE_USE_TOKEN
                         ) {
                             val key = keyManager.generateKey(this.message.text)
                             conversationHandler.stopAwaiting(conversationStep)
 
                             bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "${key.assignee}'s key '${key.key}' will be valid until" +
-                                    " ${key.formattedExpiry()} for a single use",
-                                replyMarkup = keyboard()
+                                    chatId = ChatId.fromId(message.chat.id),
+                                    text = "${key.assignee}'s key '${key.key}' will be valid until" +
+                                            " ${key.formattedExpiry()} for a single use",
+                                    replyMarkup = keyboard()
                             )
                         } else {
                             logger.info { message.chat.id }
 
                             bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "Create keys with the options in the menu below or type /listCommands " +
-                                    "for a list of valid commands.",
-                                replyMarkup = keyboard()
+                                    chatId = ChatId.fromId(message.chat.id),
+                                    text = "Create keys with the options in the menu below.",
+                                    replyMarkup = keyboard()
                             )
                         }
                     } else {
                         bot.sendMessage(
-                            chatId = ChatId.fromId(message.chat.id),
-                            text = "Please enter your registration token to continue."
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = "Please enter your registration token to continue."
                         )
                     }
                 }
@@ -193,10 +191,10 @@ class TelegramBot(
     }
 
     private fun keyboard(): KeyboardReplyMarkup = KeyboardReplyMarkup(
-        keyboard = listOf(listOf(KeyboardButton("/createKey"))) +
-            listOf(listOf(KeyboardButton("/listKeys"))) +
-            listOf(listOf(KeyboardButton("/addUser"))),
-        resizeKeyboard = true
+            keyboard = listOf(listOf(KeyboardButton("/createKey"))) +
+                    listOf(listOf(KeyboardButton("/listKeys"))) +
+                    listOf(listOf(KeyboardButton("/addUser"))),
+            resizeKeyboard = true
     )
 
     private fun CommandHandlerEnvironment.authorized(vararg permissions: Permissions): Boolean {
@@ -204,8 +202,8 @@ class TelegramBot(
             true
         } else {
             bot.sendMessage(
-                chatId = ChatId.fromId(message.chat.id),
-                text = "Unauthorized"
+                    chatId = ChatId.fromId(message.chat.id),
+                    text = "Unauthorized"
             )
             false
         }

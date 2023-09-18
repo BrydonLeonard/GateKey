@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class AuthHandler(
-    private val db: DbManager
+        private val db: DbManager
 ) {
     /**
      * Returns true if the given user has permission to execute all of the given actions.
@@ -36,10 +36,6 @@ class AuthHandler(
 
     fun userExists(id: String): Boolean {
         return UserQueries.getUser(db, id) != null
-    }
-
-    fun createUser(id: String, name: String, permissions: Set<Permissions>, chatId: Long) {
-        UserQueries.addUser(db, UserModel(id, name, permissions, chatId))
     }
 
     companion object {

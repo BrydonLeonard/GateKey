@@ -18,14 +18,20 @@ val SINGLE_USE_KEY_VALIDITY = 30 * 24.hours
 @Component
 class KeyManager(val dbManager: DbManager) {
     fun generateKey(assignee: String? = null): KeyModel {
-        val keyCode = Random.nextInt(999999).toString().padStart(6, '0')
+        // Not very idiomatic Kotlin, I know. It gets the job done.
+        var keyExists = true
+        var keyCode: String? = null
 
-        // TODO make expiry optional for single-use keys
+        while (keyExists) {
+            keyCode = Random.nextInt(999999).toString().padStart(6, '0')
+            keyExists = KeyQueries.getKey(dbManager, keyCode) != null
+        }
+
         val key = KeyModel(
-            keyCode,
-            Instant.now().plus(SINGLE_USE_KEY_VALIDITY.toJavaDuration()).epochSecond,
-            true,
-            assignee
+                keyCode!!,
+                Instant.now().plus(SINGLE_USE_KEY_VALIDITY.toJavaDuration()).epochSecond,
+                true,
+                assignee
         )
 
         KeyQueries.addKey(dbManager, key)
@@ -58,7 +64,7 @@ class KeyManager(val dbManager: DbManager) {
         val expired = key.expiry < now
         val singleUse = key.singleUse
         val withinThresholdOfFirstUse = key.firstUse != null &&
-            (now - key.firstUse) < FIRST_USE_THRESHOLD.inWholeSeconds
+                (now - key.firstUse) < FIRST_USE_THRESHOLD.inWholeSeconds
         val used = key.firstUse != null
 
         if (singleUse && used) {

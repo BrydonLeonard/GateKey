@@ -10,15 +10,18 @@ import java.sql.DriverManager
 
 @Component
 class DbManager(
-    val config: Config
+        val config: Config
 ) {
+    final var ready = false
+        private set
+
     @PostConstruct
     fun setupDb() {
         withConnection { connection ->
             val statement = connection.createStatement()
 
             statement.executeUpdate(
-                """
+                    """
                 create table if not exists gate_keys (
                     key text primary key, 
                     expiry long,
@@ -30,7 +33,7 @@ class DbManager(
             )
 
             statement.executeUpdate(
-                """
+                    """
                 create table if not exists users (
                     id text primary key,
                     name text not null,
@@ -40,18 +43,17 @@ class DbManager(
             )
 
             statement.executeUpdate(
-                """
+                    """
                 create table if not exists user_registration_tokens (
                     token text primary key,
                     expiry long not null,
-                    permissions text not null,
-                    chat_id long not null
+                    permissions text not null
                 )
                 """.trimIndent()
             )
 
             statement.executeUpdate(
-                """
+                    """
                 create table if not exists conversations (
                     chat_id text not null,
                     outbound_message_id text not null,
@@ -61,6 +63,8 @@ class DbManager(
                 """.trimIndent()
             )
         }
+
+        ready = true
     }
 
     fun <T> withConnection(function: (Connection) -> T): T {
@@ -104,4 +108,6 @@ class DbManager(
         OUTBOUND_MESSAGE_ID("outbound_message_id"),
         CONVERSATION_STEP_TYPE("conversation_step_type")
     }
+
+    class DbReadyChecker(var dbReady: Boolean)
 }

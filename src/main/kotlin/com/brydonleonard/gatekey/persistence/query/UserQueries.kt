@@ -9,7 +9,7 @@ object UserQueries {
     fun getUser(dbManager: DbManager, id: String): UserModel? {
         return dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 select * from users where id = ?
                 """.trimIndent()
             )
@@ -28,27 +28,39 @@ object UserQueries {
     fun addUser(dbManager: DbManager, user: UserModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
-                insert into users values (?, ?, ?, ?)
+                    """
+                insert into users values (?, ?, ?)
                 """.trimIndent()
             )
 
             preparedStatement.setString(1, user.id)
             preparedStatement.setString(2, user.name)
             preparedStatement.setString(3, user.permissions.joinToString(",") { it.name })
-            preparedStatement.setLong(4, user.chatId)
 
             preparedStatement.executeUpdate()
         }
     }
 
+    fun noUsers(dbManager: DbManager): Boolean {
+        return dbManager.withConnection { connection ->
+            val statement = connection.createStatement()
+
+            val rs = statement.executeQuery("select count(*) from users")
+
+            if (rs.next()) {
+                rs.getInt(1) <= 0
+            } else {
+                true
+            }
+        }
+    }
+
     private fun ResultSet.toUser() = UserModel(
-        getString(DbManager.UserFields.ID.columnName),
-        getString(DbManager.UserFields.NAME.columnName),
-        getString(DbManager.UserFields.PERMISSIONS.columnName)
-            .split(",")
-            .map { Permissions.valueOf(it) }
-            .toSet(),
-        getLong(DbManager.UserFields.CHAT_ID.columnName)
+            getString(DbManager.UserFields.ID.columnName),
+            getString(DbManager.UserFields.NAME.columnName),
+            getString(DbManager.UserFields.PERMISSIONS.columnName)
+                    .split(",")
+                    .map { Permissions.valueOf(it) }
+                    .toSet()
     )
 }

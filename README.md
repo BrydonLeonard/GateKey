@@ -81,13 +81,15 @@ from twilio and set up the voice service to point to `${your_domain}/voice`.
 
 ### Installation
 
-#### Packaging and deployment
+#### From source
 
-Run `gradle build` to generate the application tarball in `build/distributions`. Copy it to wherever you want to run it
+##### Packaging and deployment
+
+Run `gradlew build` to generate the application tarball in `build/distributions`. Copy it to wherever you want to run it
 from
 and extract the archive.
 
-#### Starting up
+##### Starting up
 
 Set these environment variables and run `bin/GateKey`:
 
@@ -99,6 +101,44 @@ Set these environment variables and run `bin/GateKey`:
 - `GATE_KEY_TELEGRAM_BOT_TOKEN` - The token that's used to assume the role of the Telegram bot.
 - `GATE_KEY_CERT_PATH` - The path of the PKCS12 cert bundle for the server.
 - `GATE_KEY_CERT_PASSWORD` - The password for the PKCS12 cert bundle.
+
+#### From the docker image
+
+GateKey is published as an image to DockerHub. You can follow these steps to run it via Docker.
+
+1. [Install and start the docker daemon](https://docs.docker.com/engine/install/ubuntu/)
+2. Pull down the GateKey image:
+
+```bash
+$ docker image pull brydonleonard/gate_key:action-dev-1
+```
+
+3. Create the volume that will hold your certificate and DB between image restarts. You can put it wherever you like on
+   the host machine, but remember the location for later when starting the container:
+
+```bash
+$ docker volume create --driver local --opt type=none --opt device=/location/on/the/host/machine --opt o=bind GateKeyVolume
+```
+
+4. Copy your cert into the volume's directory on the host machine. It'll be used by the docker image at startup
+5. Use the image to run a container. The DB path and cert path are configured by default in the docker image, but the
+   other environment variables all need to be configured:
+
+```bash
+$ sudo docker run \
+  --env GATE_KEY_ALLOWED_CALLERS=${allowedCallers} \
+  --env GATE_KEY_TELEGRAM_BOT_TOKEN=${botToken} \
+  --env GATE_KEY_CERT_PASSWORD=${password} \
+  --volume GateKeyVolume:/persistent \
+  --name=GateKey \
+  brydonleonard/gate_key:action-dev-1
+```
+
+6. If you want GateKey to start automatically and restart when it crashes, add the restart config to your `run` command:
+
+```bash
+--restart unless-stopped
+```
 
 ## Usage
 

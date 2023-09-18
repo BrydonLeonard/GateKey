@@ -6,7 +6,9 @@ plugins {
     kotlin("jvm") version "1.8.22"
     kotlin("plugin.spring") version "1.8.22"
     kotlin("kapt") version "1.9.10"
-    id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
+    // I'll re-enable this when I get around to creating a custom config for it. For now, I'm just using IntelliJ's
+    // built in format-on-save.
+    // id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
     application
 }
 
