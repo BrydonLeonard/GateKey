@@ -45,7 +45,7 @@ class UserRegistrationManager(val dbManager: DbManager) {
     }
 
     // TODO all of this should really be done transactionally, but I don't feel like it right now
-    fun createUserFromToken(tokenString: String, userId: String, userName: String, chatId: Long) {
+    fun createUserFromToken(tokenString: String, userId: String, userName: String, chatId: String) {
         val token = UserRegistrationTokenQueries.getToken(dbManager, tokenString)
                 ?: throw IllegalArgumentException("The token is invalid")
 
@@ -56,7 +56,8 @@ class UserRegistrationManager(val dbManager: DbManager) {
         val user = UserModel(
                 userId,
                 userName,
-                token.permissions
+                token.permissions,
+                chatId
         )
 
         UserQueries.addUser(dbManager, user)

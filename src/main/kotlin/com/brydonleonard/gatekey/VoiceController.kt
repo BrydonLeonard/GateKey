@@ -58,6 +58,7 @@ class VoiceController(
             }
 
             return ok(builder.openGate()).also {
+                logger.info { "Opening the gate for ${authorizedKey.assignee}" }
                 messageHandler.getAllChatIds().forEach {
                     telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
                 }

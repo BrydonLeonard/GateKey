@@ -40,7 +40,9 @@ class KeyManager(val dbManager: DbManager) {
     }
 
     fun getActiveKeys(): List<KeyModel> {
-        return KeyQueries.getKeysWithExpiryAfter(dbManager, Instant.now().epochSecond).sortedBy { it.expiry }
+        return KeyQueries.getKeysWithExpiryAfter(dbManager, Instant.now().epochSecond)
+                .filter { keyIsValid(it) }
+                .sortedBy { it.expiry }
     }
 
     /**

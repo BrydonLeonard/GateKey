@@ -36,7 +36,8 @@ class DbManager(
                 create table if not exists users (
                     id text primary key,
                     name text not null,
-                    permissions text not null
+                    permissions text not null,
+                    chat_id text not null
                 )
                 """.trimIndent()
             )

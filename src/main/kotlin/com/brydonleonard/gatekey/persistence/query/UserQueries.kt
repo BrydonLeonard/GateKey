@@ -29,13 +29,14 @@ object UserQueries {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
                     """
-                insert into users values (?, ?, ?)
+                insert into users values (?, ?, ?, ?)
                 """.trimIndent()
             )
 
             preparedStatement.setString(1, user.id)
             preparedStatement.setString(2, user.name)
             preparedStatement.setString(3, user.permissions.joinToString(",") { it.name })
+            preparedStatement.setString(4, user.chatId)
 
             preparedStatement.executeUpdate()
         }
@@ -61,6 +62,7 @@ object UserQueries {
             getString(DbManager.UserFields.PERMISSIONS.columnName)
                     .split(",")
                     .map { Permissions.valueOf(it) }
-                    .toSet()
+                    .toSet(),
+            getString(DbManager.UserFields.CHAT_ID.columnName)
     )
 }

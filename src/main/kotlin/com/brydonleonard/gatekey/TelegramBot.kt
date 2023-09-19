@@ -50,8 +50,6 @@ class TelegramBot(
     }
 
     private fun poll() {
-        // TODO Add functionality to set single use and assignee
-
         bot = bot {
             token = config.telegramBotToken
 
@@ -83,8 +81,6 @@ class TelegramBot(
                                     "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
                                 }
 
-                        logger.info { keys }
-
                         bot.sendMessage(
                                 chatId = ChatId.fromId(message.chat.id),
                                 text = keys
@@ -114,7 +110,7 @@ class TelegramBot(
                  * Catch-all that includes UUIDs for user registration
                  */
                 command("start") {
-                    logger.info { args.toString() }
+                    logger.info { "Received a registration request from ${message.from!!.firstName} ${message.from!!.lastName}" }
                     if (authHandler.userExists(this.message.from!!.id.toString())) {
                         bot.sendMessage(
                                 chatId = ChatId.fromId(message.chat.id),
@@ -129,7 +125,7 @@ class TelegramBot(
                                     args[0],
                                     this.message.from!!.id.toString(),
                                     this.message.from!!.let { "${it.firstName} ${it.lastName}" },
-                                    this.message.chat.id
+                                    this.message.chat.id.toString()
                             )
 
                             bot.sendMessage(
@@ -222,6 +218,4 @@ class TelegramBot(
             }
         }
     }
-
-    val gateKeyDurations = listOf(3, 12)
 }
