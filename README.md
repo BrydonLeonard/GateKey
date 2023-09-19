@@ -101,6 +101,8 @@ Set these environment variables and run `bin/GateKey`:
 - `GATE_KEY_TELEGRAM_BOT_TOKEN` - The token that's used to assume the role of the Telegram bot.
 - `GATE_KEY_CERT_PATH` - The path of the PKCS12 cert bundle for the server.
 - `GATE_KEY_CERT_PASSWORD` - The password for the PKCS12 cert bundle.
+- `GATE_KEY_TWILIO_TOKEN` - The Twilio account token. Make sure it's for the correct region; Twilio's UI can be vague
+  about which region a token is for.
 
 #### From the docker image
 
@@ -129,6 +131,7 @@ $ sudo docker run \
   --env GATE_KEY_ALLOWED_CALLERS=${allowedCallers} \
   --env GATE_KEY_TELEGRAM_BOT_TOKEN=${botToken} \
   --env GATE_KEY_CERT_PASSWORD=${password} \
+  --env GATE_KEY_TWILIO_TOKEN=${twilioToken} \
   --volume GateKeyVolume:/persistent \
   --name=GateKey \
   --detach \

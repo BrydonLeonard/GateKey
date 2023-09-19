@@ -3,14 +3,15 @@ package com.brydonleonard.gatekey
 import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.persistence.model.KeyModel
+import com.twilio.security.RequestValidator
 import com.twilio.twiml.VoiceResponse
-import com.twilio.twiml.voice.Dial
 import com.twilio.twiml.voice.Gather
-import com.twilio.twiml.voice.Number
+import com.twilio.twiml.voice.Play
 import com.twilio.twiml.voice.Redirect
 import com.twilio.twiml.voice.Reject
 import com.twilio.twiml.voice.Say
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -18,6 +19,10 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.net.InetAddress
+
+
+private const val TWILIO_SIGNATURE_HEADER_NAME = "X-Twilio-Signature"
 
 @RestController
 class VoiceController(
@@ -28,6 +33,8 @@ class VoiceController(
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
+    private val twilioSignatureValidator = RequestValidator(config.twilioAuthToken)
+
     // TODO add a voice redirect and limit the total number of round trips so people don't just hang out on the phone forever
 
     @PostMapping(
@@ -35,30 +42,37 @@ class VoiceController(
             consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE],
             produces = [MediaType.APPLICATION_XML_VALUE]
     )
-    fun receiveVoice(@RequestParam requestBody: MultiValueMap<String, String>): ResponseEntity<String> {
+    fun receiveVoice(@RequestParam requestBody: MultiValueMap<String, String>, request: HttpServletRequest): ResponseEntity<String> {
         val builder = VoiceResponse.Builder()
 
-        /*if (!config.allowedCallers.contains(requestBody["Caller"]?.get(0) ?: "")) {
-            logger.info { "Rejecting a call from ${requestBody["Caller"]?.get(0)}" }
+        // Basic API auth. Don't accept requests from unexpected sources
+        if (!authorizeApiCaller(requestBody, request)) {
+            return ResponseEntity(HttpStatus.UNAUTHORIZED)
+        }
+
+        // Phone number auth. Don't accept calls from phone numbers that we don't expect.
+        if (!authorizePhoneCaller(requestBody["Caller"]?.get(0) ?: "", request)) {
             return ok(builder.rejectCall())
-        }*/
+        }
 
         val digits = requestBody["Digits"]?.get(0)
 
-        logger.info { "Received digits from the gate: $digits" }
-
         if (digits != null) {
+            logger.info { "Received digits from the gate: $digits" }
+
             if (!digits.matches("^[0-9]{6}$".toRegex())) {
                 logger.warn { "The key didn't match the expected pattern" }
                 return ok(builder.invalidCode(digits).gatherKey())
             }
-            val authorizedKey = authorizeCaller(digits) ?: run {
+            val authorizedKey = authorizeKey(digits) ?: run {
                 logger.warn { "The key was not authorized" }
                 return ok(builder.invalidCode(digits).gatherKey())
             }
 
             return ok(builder.openGate()).also {
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
+
+                // Notify all users that the gate has been opened
                 messageHandler.getAllChatIds().forEach {
                     telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
                 }
@@ -68,23 +82,51 @@ class VoiceController(
         return ok(builder.gatherKey())
     }
 
-    fun authorizeCaller(digits: String): KeyModel? {
+    private fun authorizeApiCaller(requestBody: MultiValueMap<String, String>, request: HttpServletRequest): Boolean {
+        if (InetAddress.getByName(request.remoteAddr).isLoopbackAddress) {
+            return true
+        }
+
+        logger.debug { "Rejecting an API call from ${request.remoteAddr}" }
+
+        // application/x-www-form-urlencoded data can have multiple values per field, but Twilio doesn't do so,
+        // so flatten each list into a single value.
+        val params = requestBody.map {
+            it.key to it.value.first()
+        }.toMap()
+
+        val twilioSignature = request.getHeader(TWILIO_SIGNATURE_HEADER_NAME)
+
+        return twilioSignatureValidator.validate(request.requestURL.toString(), params, twilioSignature)
+    }
+
+    private fun authorizePhoneCaller(callerNumber: String, request: HttpServletRequest): Boolean {
+        if (InetAddress.getByName(request.remoteAddr).isLoopbackAddress) {
+            return true
+        }
+
+        if (!config.allowedCallers.contains(callerNumber)) {
+            logger.info { "Rejecting a call from $callerNumber" }
+            return false
+        }
+        return true
+    }
+
+    private fun authorizeKey(digits: String): KeyModel? {
         return keyManager.tryUseKey(digits)
     }
 
-    fun ok(voiceResponseBuilder: VoiceResponse.Builder): ResponseEntity<String> {
+    private fun ok(voiceResponseBuilder: VoiceResponse.Builder): ResponseEntity<String> {
         return ResponseEntity(voiceResponseBuilder.build().toXml(), HttpStatus.OK)
     }
 
-    fun VoiceResponse.Builder.openGate(): VoiceResponse.Builder {
-        return this.dial(
-                Dial.Builder().number(
-                        Number.Builder("9").build()
-                ).build()
+    private fun VoiceResponse.Builder.openGate(): VoiceResponse.Builder {
+        return this.play(
+                Play.Builder().digits("9999").build()
         )
     }
 
-    fun VoiceResponse.Builder.rejectCall(): VoiceResponse.Builder {
+    private fun VoiceResponse.Builder.rejectCall(): VoiceResponse.Builder {
         return this.reject(
                 Reject.Builder()
                         .reason(Reject.Reason.REJECTED)
@@ -92,13 +134,13 @@ class VoiceController(
         )
     }
 
-    fun VoiceResponse.Builder.invalidCode(code: String): VoiceResponse.Builder {
+    private fun VoiceResponse.Builder.invalidCode(code: String): VoiceResponse.Builder {
         return this.say(
                 Say.Builder("That key is invalid. You typed $code").build()
         )
     }
 
-    fun VoiceResponse.Builder.gatherKey(): VoiceResponse.Builder {
+    private fun VoiceResponse.Builder.gatherKey(): VoiceResponse.Builder {
         return this.gather(
                 Gather.Builder()
                         .numDigits(7)

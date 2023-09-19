@@ -37,6 +37,8 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:6.1.0")
     implementation("org.xerial:sqlite-jdbc")
+    implementation("com.twilio.sdk:twilio:9.12.0")
+    implementation(kotlin("reflect"))
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
