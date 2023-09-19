@@ -112,7 +112,7 @@ GateKey is published as an image to DockerHub. You can follow these steps to run
 2. Pull down the GateKey image:
 
 ```bash
-$ docker image pull brydonleonard/gate_key:action-dev-1
+$ docker image pull brydonleonard/gate_key:mainline
 ```
 
 3. Create the volume that will hold your certificate and DB between image restarts. You can put it wherever you like on
@@ -156,8 +156,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- ACKNOWLEDGMENTS -->
 
 ## Acknowledgments
-
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites
-to kick things off!
 
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template/blob/master/README.md)
