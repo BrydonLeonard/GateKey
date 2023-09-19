@@ -33,7 +33,7 @@ class TelegramBot(
         val conversationHandler: ConversationHandler,
         val config: Config
 ) {
-    private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
+    private val logger = KotlinLogging.logger(TelegramBot::class.qualifiedName!!)
 
     private lateinit var bot: Bot
 

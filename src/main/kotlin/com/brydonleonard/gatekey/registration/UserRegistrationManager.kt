@@ -1,6 +1,5 @@
 package com.brydonleonard.gatekey.registration
 
-import com.brydonleonard.gatekey.VoiceController
 import com.brydonleonard.gatekey.auth.PermissionBundle
 import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.UserModel
@@ -9,7 +8,6 @@ import com.brydonleonard.gatekey.persistence.query.UserQueries
 import com.brydonleonard.gatekey.persistence.query.UserRegistrationTokenQueries
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.lang.Thread.sleep
 import java.time.Duration
@@ -20,7 +18,7 @@ private val REGISTRATION_TOKEN_VALIDITY = Duration.ofDays(1)
 
 @Component
 class UserRegistrationManager(val dbManager: DbManager) {
-    private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
+    private val logger = KotlinLogging.logger(UserRegistrationManager::class.qualifiedName!!)
 
     @PostConstruct
     fun generateInitialToken() {

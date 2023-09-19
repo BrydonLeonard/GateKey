@@ -131,7 +131,9 @@ $ sudo docker run \
   --env GATE_KEY_CERT_PASSWORD=${password} \
   --volume GateKeyVolume:/persistent \
   --name=GateKey \
-  brydonleonard/gate_key:action-dev-1
+  --detach \
+  --publish 443:443
+  brydonleonard/gate_key:mainline
 ```
 
 6. If you want GateKey to start automatically and restart when it crashes, add the restart config to your `run` command:

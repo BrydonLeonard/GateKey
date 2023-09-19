@@ -1,6 +1,5 @@
 package com.brydonleonard.gatekey.persistence.query
 
-import com.brydonleonard.gatekey.VoiceController
 import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -8,7 +7,6 @@ import java.sql.ResultSet
 import java.sql.Types
 
 object KeyQueries {
-    private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
     fun addKey(dbManager: DbManager, key: KeyModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement("insert into gate_keys values (?, ?, ?, ?, ?)")
@@ -34,7 +32,7 @@ object KeyQueries {
     fun setFirstUse(dbManager: DbManager, key: KeyModel, firstUse: Long) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                     update gate_keys
                     set first_use = ?
                     where key = ? and first_use is null
@@ -51,7 +49,7 @@ object KeyQueries {
     fun deleteKeys(dbManager: DbManager, keys: Collection<KeyModel>) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                "delete from gate_keys where key in (${List(keys.size) { "?" }.joinToString(",")})"
+                    "delete from gate_keys where key in (${List(keys.size) { "?" }.joinToString(",")})"
             )
 
             keys.forEachIndexed { index, key ->
@@ -65,8 +63,6 @@ object KeyQueries {
     fun getKey(dbManager: DbManager, keyCode: String): KeyModel? {
         val queryResults = listKeyQuery(dbManager, "select * from gate_keys where key = ?", keyCode)
 
-        logger.info { queryResults }
-
         if (queryResults.isEmpty()) {
             return null
         }
@@ -75,10 +71,10 @@ object KeyQueries {
     }
 
     fun getKeysWithExpiryAfter(dbManager: DbManager, minExpiry: Long): List<KeyModel> =
-        listKeyQuery(dbManager, "select * from gate_keys where expiry > ?", minExpiry)
+            listKeyQuery(dbManager, "select * from gate_keys where expiry > ?", minExpiry)
 
     fun getKeysWithExpiryBefore(dbManager: DbManager, maxExpiry: Long): List<KeyModel> =
-        listKeyQuery(dbManager, "select * from gate_keys where expiry < ?", maxExpiry)
+            listKeyQuery(dbManager, "select * from gate_keys where expiry < ?", maxExpiry)
 
     private fun listKeyQuery(dbManager: DbManager, query: String, vararg params: Any): List<KeyModel> {
         return dbManager.withConnection { connection ->
@@ -104,10 +100,10 @@ object KeyQueries {
     }
 
     private fun ResultSet.toKey() = KeyModel(
-        getString(DbManager.KeyFields.KEY.columnName),
-        getLong(DbManager.KeyFields.EXPIRY.columnName),
-        getInt(DbManager.KeyFields.SINGLE_USE.columnName) == 1,
-        getString(DbManager.KeyFields.ASSIGNEE.columnName),
-        getLong(DbManager.KeyFields.FIRST_USE.columnName).let { if (it == 0L) null else it }
+            getString(DbManager.KeyFields.KEY.columnName),
+            getLong(DbManager.KeyFields.EXPIRY.columnName),
+            getInt(DbManager.KeyFields.SINGLE_USE.columnName) == 1,
+            getString(DbManager.KeyFields.ASSIGNEE.columnName),
+            getLong(DbManager.KeyFields.FIRST_USE.columnName).let { if (it == 0L) null else it }
     )
 }

@@ -21,40 +21,46 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 class VoiceController(
-    val keyManager: KeyManager,
-    val messageHandler: ConversationHandler,
-    val telegramBot: TelegramBot,
-    val config: Config
+        val keyManager: KeyManager,
+        val messageHandler: ConversationHandler,
+        val telegramBot: TelegramBot,
+        val config: Config
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
     // TODO add a voice redirect and limit the total number of round trips so people don't just hang out on the phone forever
 
     @PostMapping(
-        "/voice",
-        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE],
-        produces = [MediaType.APPLICATION_XML_VALUE]
+            "/voice",
+            consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE],
+            produces = [MediaType.APPLICATION_XML_VALUE]
     )
     fun receiveVoice(@RequestParam requestBody: MultiValueMap<String, String>): ResponseEntity<String> {
         val builder = VoiceResponse.Builder()
 
-        if (!config.allowedCallers.contains(requestBody["Caller"]?.get(0) ?: "")) {
+        /*if (!config.allowedCallers.contains(requestBody["Caller"]?.get(0) ?: "")) {
             logger.info { "Rejecting a call from ${requestBody["Caller"]?.get(0)}" }
             return ok(builder.rejectCall())
-        }
+        }*/
 
         val digits = requestBody["Digits"]?.get(0)
 
-        if (digits != null && digits.matches("^[0-9]{6}$".toRegex())) {
-            val authorizedKey = authorizeCaller(digits)
-            return if (authorizedKey != null) {
-                ok(builder.openGate()).also {
-                    messageHandler.getAllChatIds().forEach {
-                        telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
-                    }
+        logger.info { "Received digits from the gate: $digits" }
+
+        if (digits != null) {
+            if (!digits.matches("^[0-9]{6}$".toRegex())) {
+                logger.warn { "The key didn't match the expected pattern" }
+                return ok(builder.invalidCode(digits).gatherKey())
+            }
+            val authorizedKey = authorizeCaller(digits) ?: run {
+                logger.warn { "The key was not authorized" }
+                return ok(builder.invalidCode(digits).gatherKey())
+            }
+
+            return ok(builder.openGate()).also {
+                messageHandler.getAllChatIds().forEach {
+                    telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
                 }
-            } else {
-                ok(builder.invalidCode(digits).gatherKey())
             }
         }
 
@@ -71,32 +77,32 @@ class VoiceController(
 
     fun VoiceResponse.Builder.openGate(): VoiceResponse.Builder {
         return this.dial(
-            Dial.Builder().number(
-                Number.Builder("9").build()
-            ).build()
+                Dial.Builder().number(
+                        Number.Builder("9").build()
+                ).build()
         )
     }
 
     fun VoiceResponse.Builder.rejectCall(): VoiceResponse.Builder {
         return this.reject(
-            Reject.Builder()
-                .reason(Reject.Reason.REJECTED)
-                .build()
+                Reject.Builder()
+                        .reason(Reject.Reason.REJECTED)
+                        .build()
         )
     }
 
     fun VoiceResponse.Builder.invalidCode(code: String): VoiceResponse.Builder {
         return this.say(
-            Say.Builder("That key is invalid").build()
+                Say.Builder("That key is invalid. You typed $code").build()
         )
     }
 
     fun VoiceResponse.Builder.gatherKey(): VoiceResponse.Builder {
         return this.gather(
-            Gather.Builder()
-                .numDigits(7)
-                .say(Say.Builder("Enter your 6 digit key and press hash").build())
-                .build()
+                Gather.Builder()
+                        .numDigits(7)
+                        .say(Say.Builder("Enter your 6 digit key and press hash").build())
+                        .build()
         ).redirect(Redirect.Builder("/voice").build())
     }
 }

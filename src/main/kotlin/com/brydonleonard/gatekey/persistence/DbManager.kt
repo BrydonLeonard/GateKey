@@ -1,7 +1,6 @@
 package com.brydonleonard.gatekey.persistence
 
 import com.brydonleonard.gatekey.Config
-import com.brydonleonard.gatekey.VoiceController
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
@@ -79,7 +78,7 @@ class DbManager(
     }
 
     companion object {
-        private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
+        private val logger = KotlinLogging.logger(DbManager::class.qualifiedName!!)
     }
 
     enum class KeyFields(val columnName: String) {
