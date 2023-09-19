@@ -1,9 +1,9 @@
 package com.brydonleonard.gatekey.persistence.model
 
 class ConversationStepModel(
-    val chatId: Long,
-    val outboundMessageId: Long,
-    val conversationStepType: ConversationStepType
+        val chatId: Long,
+        val outboundMessageId: Long,
+        val conversationStepType: ConversationStepType
 )
 
 enum class ConversationStepType {

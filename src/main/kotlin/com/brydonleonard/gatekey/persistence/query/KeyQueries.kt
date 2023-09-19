@@ -2,7 +2,6 @@ package com.brydonleonard.gatekey.persistence.query
 
 import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.KeyModel
-import io.github.oshai.kotlinlogging.KotlinLogging
 import java.sql.ResultSet
 import java.sql.Types
 

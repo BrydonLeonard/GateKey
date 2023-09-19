@@ -1,7 +1,6 @@
 package com.brydonleonard.gatekey.auth
 
 import com.brydonleonard.gatekey.persistence.DbManager
-import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.query.UserQueries
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component

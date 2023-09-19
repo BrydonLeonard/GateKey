@@ -18,8 +18,8 @@ class KeySweeper(val dbManager: DbManager) {
     @Scheduled(fixedRate = 60000, initialDelay = 60000)
     fun reportCurrentTime() {
         val expiredKeys = KeyQueries.getKeysWithExpiryBefore(
-            dbManager,
-            Instant.now().epochSecond - KEY_SWEEP_OFFSET.seconds
+                dbManager,
+                Instant.now().epochSecond - KEY_SWEEP_OFFSET.seconds
         )
 
         KeyQueries.deleteKeys(dbManager, expiredKeys)

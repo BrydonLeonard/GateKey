@@ -14,9 +14,9 @@ import java.time.Instant
 @RestController
 class HealthCheckController(val dbManager: DbManager) {
     @PostMapping(
-        "/ping",
-        consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.TEXT_PLAIN_VALUE]
+            "/ping",
+            consumes = [MediaType.APPLICATION_JSON_VALUE],
+            produces = [MediaType.TEXT_PLAIN_VALUE]
     )
     fun receiveVoice(@RequestBody requestBody: JsonNode): ResponseEntity<String> {
         // Just confirm that this doesn't fail

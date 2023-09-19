@@ -8,7 +8,7 @@ object ConversationQueries {
     fun putConversationStep(dbManager: DbManager, conversationStep: ConversationStepModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 insert into conversations
                 values (?, ?, ?)
                 """.trimIndent()
@@ -25,7 +25,7 @@ object ConversationQueries {
     fun deleteConversationStep(dbManager: DbManager, conversationStep: ConversationStepModel) {
         dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 delete from conversations where chat_id = ? and outbound_message_id = ?
                 """.trimIndent()
             )
@@ -40,7 +40,7 @@ object ConversationQueries {
     fun checkForConversation(dbManager: DbManager, chatId: Long, replyMessageId: Long): ConversationStepModel? {
         return dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 select * from conversations where chat_id = ? and outbound_message_id = ?
                 """.trimIndent()
             )
@@ -52,11 +52,11 @@ object ConversationQueries {
 
             if (rs.next()) {
                 ConversationStepModel(
-                    rs.getLong(DbManager.ConversationFields.CHAT_ID.columnName),
-                    rs.getLong(DbManager.ConversationFields.OUTBOUND_MESSAGE_ID.columnName),
-                    ConversationStepType.valueOf(
-                        rs.getString(DbManager.ConversationFields.CONVERSATION_STEP_TYPE.columnName)
-                    )
+                        rs.getLong(DbManager.ConversationFields.CHAT_ID.columnName),
+                        rs.getLong(DbManager.ConversationFields.OUTBOUND_MESSAGE_ID.columnName),
+                        ConversationStepType.valueOf(
+                                rs.getString(DbManager.ConversationFields.CONVERSATION_STEP_TYPE.columnName)
+                        )
                 )
             } else {
                 null
@@ -67,7 +67,7 @@ object ConversationQueries {
     fun listAllChatIds(dbManager: DbManager): List<Long> {
         return dbManager.withConnection { connection ->
             val preparedStatement = connection.prepareStatement(
-                """
+                    """
                 select * from users
                 """.trimIndent()
             )
