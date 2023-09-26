@@ -15,6 +15,8 @@ data class KeyModel(
         return sdf.format(netDate)
     }
 
+    val formattedKey = key.chunked(3).joinToString(" ")
+
     companion object {
         val sdf = SimpleDateFormat("yyyy/dd/MM HH:mm")
     }

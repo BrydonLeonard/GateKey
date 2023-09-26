@@ -18,6 +18,7 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ForceReplyMarkup
 import com.github.kotlintelegrambot.entities.KeyboardReplyMarkup
 import com.github.kotlintelegrambot.entities.Message
+import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.keyboard.KeyboardButton
 import com.github.kotlintelegrambot.extensions.filters.Filter
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -160,9 +161,26 @@ class TelegramBot(
 
                             bot.sendMessage(
                                     chatId = ChatId.fromId(message.chat.id),
-                                    text = "${key.assignee}'s key '${key.key}' will be valid until" +
-                                            " ${key.formattedExpiry()} for a single use",
+                                    text = "${key.assignee}'s key '${key.key}' will be valid until " +
+                                            "${key.formattedExpiry()} for a single use. Here's a message that you " +
+                                            "can forward straight to them:",
                                     replyMarkup = keyboard()
+                            )
+                            bot.sendMessage(
+                                    chatId = ChatId.fromId(message.chat.id),
+                                    text = """
+                                        Hi, ${key.assignee}. Your L'Afrique keycode is
+                                        
+                                                *${key.formattedKey}*
+                                        
+                                        When you arrive at L'Afrique Eco Village:
+                                        1. Dial 39📞 on the intercom keypad
+                                        2. Wait for the call to connect
+                                        3. Dial ${key.formattedKey}#
+                                        4. The gate will open                          
+                                    """.trimIndent(),
+                                    replyMarkup = keyboard(),
+                                    parseMode = ParseMode.MARKDOWN,
                             )
                         } else {
                             logger.info { message.chat.id }
