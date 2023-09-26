@@ -27,7 +27,7 @@ private const val TWILIO_SIGNATURE_HEADER_NAME = "X-Twilio-Signature"
 @RestController
 class VoiceController(
         val keyManager: KeyManager,
-        val messageHandler: ConversationHandler,
+        val conversationHandler: ConversationHandler,
         val telegramBot: TelegramBot,
         val config: Config
 ) {
@@ -73,7 +73,7 @@ class VoiceController(
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
 
                 // Notify all users that the gate has been opened
-                messageHandler.getAllChatIds().forEach {
+                conversationHandler.getAllChatIds().forEach {
                     telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
                 }
             }
@@ -100,17 +100,25 @@ class VoiceController(
         return twilioSignatureValidator.validate(request.requestURL.toString(), params, twilioSignature)
     }
 
-    private fun authorizePhoneCaller(callerNumber: String, request: HttpServletRequest): Boolean {
+    fun authorizePhoneCaller(callerNumber: String, request: HttpServletRequest): Boolean {
         if (InetAddress.getByName(request.remoteAddr).isLoopbackAddress) {
             return true
         }
 
-        if (!config.allowedCallers.contains(callerNumber)) {
+        // Numbers can be configured with or without region codes and with or without the + ahead of the region code
+        if (config.allowedCallers.intersect(validPhoneNumberForms(callerNumber)).isEmpty()) {
             logger.info { "Rejecting a call from $callerNumber" }
             return false
         }
         return true
     }
+
+    // TODO consider pre-materialising the list of valid numbers instead of transforming the numbers on each request
+    private fun validPhoneNumberForms(number: String) = setOf(
+            number,
+            number.replace("+27", "27"),
+            number.replace("+27", "0")
+    )
 
     private fun authorizeKey(digits: String): KeyModel? {
         return keyManager.tryUseKey(digits)
