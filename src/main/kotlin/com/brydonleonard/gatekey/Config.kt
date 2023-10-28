@@ -12,7 +12,9 @@ class Config(
         @Value("\${GATE_KEY_TELEGRAM_BOT_TOKEN}")
         val telegramBotToken: String,
         @Value("\${GATE_KEY_TWILIO_TOKEN}")
-        val twilioAuthToken: String
+        val twilioAuthToken: String,
+        @Value("\${GATE_KEY_DEFAULT_HOUSEHOLD:default}")
+        val defaultHouseholdId: String
 
 ) {
     val allowedCallers: Set<String> by lazy { allowedCallersRaw.split(",").toSet() }

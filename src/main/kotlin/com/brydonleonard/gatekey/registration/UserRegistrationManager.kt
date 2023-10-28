@@ -1,9 +1,12 @@
 package com.brydonleonard.gatekey.registration
 
+import com.brydonleonard.gatekey.Config
 import com.brydonleonard.gatekey.auth.PermissionBundle
 import com.brydonleonard.gatekey.persistence.DbManager
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
+import com.brydonleonard.gatekey.persistence.query.HouseholdStore
 import com.brydonleonard.gatekey.persistence.query.UserRegistrationStore
 import com.brydonleonard.gatekey.persistence.query.UserStore
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -17,7 +20,7 @@ import java.util.UUID
 private val REGISTRATION_TOKEN_VALIDITY = Duration.ofDays(1)
 
 @Component
-class UserRegistrationManager(val dbManager: DbManager, val userStore: UserStore, val userRegistrationStore: UserRegistrationStore) {
+class UserRegistrationManager(val config: Config, val dbManager: DbManager, val userStore: UserStore, val userRegistrationStore: UserRegistrationStore, val householdStore: HouseholdStore) {
     private val logger = KotlinLogging.logger(UserRegistrationManager::class.qualifiedName!!)
 
     @PostConstruct
@@ -28,7 +31,13 @@ class UserRegistrationManager(val dbManager: DbManager, val userStore: UserStore
 
         if (userStore.noUsers()) {
             val newUserToken = generateNewUserToken(PermissionBundle.ADMIN)
-            logger.info { "The DB is empty. Generated a first-time new user token: ${tokenToLink(newUserToken.token)}" }
+            logger.info { "The users table is empty. Generated a first-time new user token: ${tokenToLink(newUserToken.token)}" }
+        }
+
+        if (householdStore.noHouseholds()) {
+            householdStore.addHousehold(config.defaultHouseholdId)
+            logger.info { "The households table is empty. Inserted the default household (${config.defaultHouseholdId})" }
+
         }
     }
 
@@ -36,7 +45,8 @@ class UserRegistrationManager(val dbManager: DbManager, val userStore: UserStore
         val token = UserRegistrationTokenModel(
                 UUID.randomUUID().toString(),
                 Instant.now().plus(REGISTRATION_TOKEN_VALIDITY).epochSecond,
-                permissionBundle.permissions
+                permissionBundle.permissions,
+                HouseholdModel.default(config)
         )
 
         userRegistrationStore.createToken(token)
@@ -57,7 +67,8 @@ class UserRegistrationManager(val dbManager: DbManager, val userStore: UserStore
                 userId,
                 userName,
                 token.permissions,
-                chatId
+                chatId,
+                token.household
         )
 
         userStore.addUser(user)

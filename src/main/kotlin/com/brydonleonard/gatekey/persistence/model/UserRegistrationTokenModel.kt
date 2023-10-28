@@ -9,16 +9,18 @@ import com.j256.ormlite.table.DatabaseTable
 data class UserRegistrationTokenModel(
         @DatabaseField(id = true) var token: String,
         @DatabaseField(canBeNull = false) var expiry: Long,
-        @DatabaseField(canBeNull = false, persisterClass = PermissionsSetPersister::class) var permissions: Set<Permissions>
+        @DatabaseField(canBeNull = false, persisterClass = PermissionsSetPersister::class) var permissions: Set<Permissions>,
+        @DatabaseField(canBeNull = false, foreign = true) var household: HouseholdModel
 ) {
     /**
      * Necessary for ORMLite
      */
-    constructor() : this("", 0L, emptySet())
+    constructor() : this("", 0L, emptySet(), HouseholdModel())
 
     enum class Fields(val columeName: String) {
         TOKEN("token"),
         EXPIRY("expiry"),
-        PERMISSIONS("permissions")
+        PERMISSIONS("permissions"),
+        HOUSEHOLD("household_id")
     }
 }

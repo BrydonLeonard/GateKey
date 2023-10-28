@@ -10,13 +10,14 @@ data class KeyModel(
         @DatabaseField(id = true) var key: String,
         @DatabaseField(canBeNull = false) var expiry: Long,
         @DatabaseField(canBeNull = false, columnName = "single_use") var singleUse: Boolean,
+        @DatabaseField(canBeNull = false, foreign = true) var household: HouseholdModel,
         @DatabaseField var assignee: String? = null,
-        @DatabaseField(columnName = "first_use") var firstUse: Long? = null
+        @DatabaseField(columnName = "first_use") var firstUse: Long? = null,
 ) {
     /**
      * Necessary for ORMLite
      */
-    constructor() : this("", 0, false)
+    constructor() : this("", 0, false, HouseholdModel())
 
     fun formattedExpiry(): String {
         val netDate = Date(expiry * 1000)
@@ -30,7 +31,8 @@ data class KeyModel(
         EXPIRY("expiry"),
         SINGLE_USE("single_use"),
         ASSIGNEE("assignee"),
-        FIRST_USE("first_use")
+        FIRST_USE("first_use"),
+        HOUSEHOLD("household_id")
     }
 
     companion object {

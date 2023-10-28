@@ -1,5 +1,6 @@
 package com.brydonleonard.gatekey.keys
 
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.query.KeyStore
 import org.springframework.stereotype.Component
@@ -29,6 +30,7 @@ class KeyManager(val keyStore: KeyStore) {
                 keyCode!!,
                 Instant.now().plus(SINGLE_USE_KEY_VALIDITY.toJavaDuration()).epochSecond,
                 true,
+                HouseholdModel("39"),
                 assignee
         )
 

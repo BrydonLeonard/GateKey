@@ -11,17 +11,19 @@ data class UserModel(
         @DatabaseField(canBeNull = false) var name: String,
         @DatabaseField(canBeNull = false, persisterClass = PermissionsSetPersister::class)
         var permissions: Set<Permissions>,
-        @DatabaseField(canBeNull = false, columnName = "chat_id") var chatId: String
+        @DatabaseField(canBeNull = false, columnName = "chat_id") var chatId: String,
+        @DatabaseField(canBeNull = false, foreign = true) var household: HouseholdModel
 ) {
     /**
      * Necessary for ORMLite
      */
-    constructor() : this("", "", emptySet(), "")
+    constructor() : this("", "", emptySet(), "", HouseholdModel())
 
     enum class Fields(val columnName: String) {
         ID("id"),
         NAME("name"),
         PERMISSIONS("permissions"),
-        CHAT_ID("chat_id")
+        CHAT_ID("chat_id"),
+        HOUSEHOLD("household_id")
     }
 }
