@@ -1,5 +1,6 @@
 package com.brydonleonard.gatekey.keys
 
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.query.KeyStore
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -39,6 +40,7 @@ class KeyManagerTest {
                 "123456",
                 now.plus(deltaMinutesExpiry.minutes.toJavaDuration()).epochSecond,
                 true,
+                HouseholdModel(),
                 "test",
                 deltaMinutesFirstUse?.let { now.plus(it.minutes.toJavaDuration()).epochSecond }
         )

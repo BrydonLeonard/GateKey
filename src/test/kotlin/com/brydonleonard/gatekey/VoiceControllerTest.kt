@@ -67,6 +67,7 @@ class VoiceControllerTest {
             allowedCallers,
             "./foo.db",
             "123",
-            "123"
+            "123",
+            "default"
     )
 }
