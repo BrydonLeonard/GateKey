@@ -2,6 +2,7 @@ package com.brydonleonard.gatekey.persistence.spring
 
 import com.brydonleonard.gatekey.Config
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
+import com.brydonleonard.gatekey.persistence.model.DbMigrationModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
@@ -17,6 +18,10 @@ class SpringConfig {
     @Bean(destroyMethod = "close")
     fun connectionSource(config: Config): JdbcPooledConnectionSource =
             JdbcPooledConnectionSource("jdbc:sqlite:${config.dbPath}")
+
+    @Bean
+    fun migrationDao(connectionSource: ConnectionSource): Dao<DbMigrationModel, Int> =
+            DaoManager.createDao(connectionSource, DbMigrationModel::class.java)
 
     @Bean
     fun conversationDao(connectionSource: ConnectionSource): Dao<ConversationStepModel, String> =

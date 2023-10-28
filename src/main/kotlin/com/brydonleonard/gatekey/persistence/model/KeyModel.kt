@@ -5,12 +5,11 @@ import com.j256.ormlite.table.DatabaseTable
 import java.text.SimpleDateFormat
 import java.util.Date
 
-
 @DatabaseTable(tableName = "keys")
 data class KeyModel(
         @DatabaseField(id = true) var key: String,
         @DatabaseField(canBeNull = false) var expiry: Long,
-        @DatabaseField(canBeNull = false, columnName = "singleUse") var singleUse: Boolean,
+        @DatabaseField(canBeNull = false, columnName = "single_use") var singleUse: Boolean,
         @DatabaseField var assignee: String? = null,
         @DatabaseField(columnName = "first_use") var firstUse: Long? = null
 ) {
