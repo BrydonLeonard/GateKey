@@ -1,9 +1,7 @@
 package com.brydonleonard.gatekey.keys
 
-import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.KeyModel
-import com.brydonleonard.gatekey.persistence.query.KeyQueries
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.brydonleonard.gatekey.persistence.query.KeyStore
 import org.springframework.stereotype.Component
 import java.time.Instant
 import kotlin.random.Random
@@ -16,7 +14,7 @@ val FIRST_USE_THRESHOLD = 5.minutes
 val SINGLE_USE_KEY_VALIDITY = 30 * 24.hours
 
 @Component
-class KeyManager(val dbManager: DbManager) {
+class KeyManager(val keyStore: KeyStore) {
     fun generateKey(assignee: String? = null): KeyModel {
         // Not very idiomatic Kotlin, I know. It gets the job done.
         var keyExists = true
@@ -24,7 +22,7 @@ class KeyManager(val dbManager: DbManager) {
 
         while (keyExists) {
             keyCode = Random.nextInt(999999).toString().padStart(6, '0')
-            keyExists = KeyQueries.getKey(dbManager, keyCode) != null
+            keyExists = keyStore.getKey(keyCode) != null
         }
 
         val key = KeyModel(
@@ -34,13 +32,13 @@ class KeyManager(val dbManager: DbManager) {
                 assignee
         )
 
-        KeyQueries.addKey(dbManager, key)
+        keyStore.addKey(key)
 
         return key
     }
 
     fun getActiveKeys(): List<KeyModel> {
-        return KeyQueries.getKeysWithExpiryAfter(dbManager, Instant.now().epochSecond)
+        return keyStore.getKeysWithExpiryAfter(Instant.now().epochSecond)
                 .filter { keyIsValid(it) }
                 .sortedBy { it.expiry }
     }
@@ -49,7 +47,7 @@ class KeyManager(val dbManager: DbManager) {
      * A key is valid
      */
     fun tryUseKey(keyCode: String): KeyModel? {
-        val key = KeyQueries.getKey(dbManager, keyCode) ?: return null
+        val key = keyStore.getKey(keyCode) ?: return null
 
         if (keyIsValid(key)) {
             updateFirstUse(key)
@@ -66,7 +64,7 @@ class KeyManager(val dbManager: DbManager) {
         val expired = key.expiry < now
         val singleUse = key.singleUse
         val withinThresholdOfFirstUse = key.firstUse != null &&
-                (now - key.firstUse) < FIRST_USE_THRESHOLD.inWholeSeconds
+                (now - key.firstUse!!) < FIRST_USE_THRESHOLD.inWholeSeconds
         val used = key.firstUse != null
 
         if (singleUse && used) {
@@ -78,11 +76,7 @@ class KeyManager(val dbManager: DbManager) {
 
     private fun updateFirstUse(key: KeyModel) {
         if (key.firstUse == null) {
-            KeyQueries.setFirstUse(dbManager, key, Instant.now().epochSecond)
+            keyStore.setFirstUse(key, Instant.now().epochSecond)
         }
-    }
-
-    companion object {
-        private val logger = KotlinLogging.logger(KeyManager::class.qualifiedName!!)
     }
 }

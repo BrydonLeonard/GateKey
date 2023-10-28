@@ -4,8 +4,8 @@ import com.brydonleonard.gatekey.auth.PermissionBundle
 import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
-import com.brydonleonard.gatekey.persistence.query.UserQueries
-import com.brydonleonard.gatekey.persistence.query.UserRegistrationTokenQueries
+import com.brydonleonard.gatekey.persistence.query.UserRegistrationStore
+import com.brydonleonard.gatekey.persistence.query.UserStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
@@ -17,7 +17,7 @@ import java.util.UUID
 private val REGISTRATION_TOKEN_VALIDITY = Duration.ofDays(1)
 
 @Component
-class UserRegistrationManager(val dbManager: DbManager) {
+class UserRegistrationManager(val dbManager: DbManager, val userStore: UserStore, val userRegistrationStore: UserRegistrationStore) {
     private val logger = KotlinLogging.logger(UserRegistrationManager::class.qualifiedName!!)
 
     @PostConstruct
@@ -26,7 +26,7 @@ class UserRegistrationManager(val dbManager: DbManager) {
             sleep(500)
         }
 
-        if (UserQueries.noUsers(dbManager)) {
+        if (userStore.noUsers()) {
             val newUserToken = generateNewUserToken(PermissionBundle.ADMIN)
             logger.info { "The DB is empty. Generated a first-time new user token: ${tokenToLink(newUserToken.token)}" }
         }
@@ -39,14 +39,14 @@ class UserRegistrationManager(val dbManager: DbManager) {
                 permissionBundle.permissions
         )
 
-        UserRegistrationTokenQueries.createToken(dbManager, token)
+        userRegistrationStore.createToken(token)
 
         return token
     }
 
     // TODO all of this should really be done transactionally, but I don't feel like it right now
     fun createUserFromToken(tokenString: String, userId: String, userName: String, chatId: String) {
-        val token = UserRegistrationTokenQueries.getToken(dbManager, tokenString)
+        val token = userRegistrationStore.getToken(tokenString)
                 ?: throw IllegalArgumentException("The token is invalid")
 
         if (token.expiry < Instant.now().epochSecond) {
@@ -60,9 +60,9 @@ class UserRegistrationManager(val dbManager: DbManager) {
                 chatId
         )
 
-        UserQueries.addUser(dbManager, user)
+        userStore.addUser(user)
 
-        UserRegistrationTokenQueries.deleteToken(dbManager, token)
+        userRegistrationStore.deleteToken(token)
     }
 
     companion object {

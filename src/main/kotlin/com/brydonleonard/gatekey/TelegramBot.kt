@@ -21,6 +21,7 @@ import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.keyboard.KeyboardButton
 import com.github.kotlintelegrambot.extensions.filters.Filter
+import com.github.kotlintelegrambot.logging.LogLevel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
@@ -52,6 +53,7 @@ class TelegramBot(
 
     private fun poll() {
         bot = bot {
+            logLevel = LogLevel.Error
             token = config.telegramBotToken
 
             dispatch {
@@ -152,6 +154,8 @@ class TelegramBot(
                                 this.message.chat.id,
                                 this.message.replyToMessage?.messageId
                         )
+
+
 
                         if (conversationStep != null &&
                                 conversationStep.conversationStepType == ConversationStepType.CREATE_SINGLE_USE_TOKEN

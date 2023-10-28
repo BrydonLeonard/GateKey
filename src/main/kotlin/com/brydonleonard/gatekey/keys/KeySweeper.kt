@@ -1,7 +1,6 @@
 package com.brydonleonard.gatekey.keys
 
-import com.brydonleonard.gatekey.persistence.DbManager
-import com.brydonleonard.gatekey.persistence.query.KeyQueries
+import com.brydonleonard.gatekey.persistence.query.KeyStore
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -13,15 +12,14 @@ import java.time.Instant
 val KEY_SWEEP_OFFSET: Duration = Duration.ofDays(30)
 
 @Component
-class KeySweeper(val dbManager: DbManager) {
+class KeySweeper(val keyStore: KeyStore) {
 
     @Scheduled(fixedRate = 60000, initialDelay = 60000)
     fun reportCurrentTime() {
-        val expiredKeys = KeyQueries.getKeysWithExpiryBefore(
-                dbManager,
+        val expiredKeys = keyStore.getKeysWithExpiryBefore(
                 Instant.now().epochSecond - KEY_SWEEP_OFFSET.seconds
         )
 
-        KeyQueries.deleteKeys(dbManager, expiredKeys)
+        keyStore.deleteKeys(expiredKeys)
     }
 }

@@ -1,7 +1,6 @@
 package com.brydonleonard.gatekey.auth
 
-import com.brydonleonard.gatekey.persistence.DbManager
-import com.brydonleonard.gatekey.persistence.query.UserQueries
+import com.brydonleonard.gatekey.persistence.query.UserStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -14,14 +13,12 @@ import org.springframework.stereotype.Component
  * - Callers should only be allowed to manage one telephone number. We can deal with that later, though.
  */
 @Component
-class AuthHandler(
-        private val db: DbManager
-) {
+class AuthHandler(val userStore: UserStore) {
     /**
      * Returns true if the given user has permission to execute all of the given actions.
      */
     fun authorize(id: String, actions: Set<Permissions>): Boolean {
-        val user = UserQueries.getUser(db, id) ?: return false
+        val user = userStore.getUser(id) ?: return false
 
         val missingPermissions = actions - user.permissions
 
@@ -34,7 +31,7 @@ class AuthHandler(
     }
 
     fun userExists(id: String): Boolean {
-        return UserQueries.getUser(db, id) != null
+        return userStore.getUser(id) != null
     }
 
     companion object {

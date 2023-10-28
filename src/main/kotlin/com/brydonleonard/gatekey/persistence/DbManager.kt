@@ -1,113 +1,41 @@
 package com.brydonleonard.gatekey.persistence
 
-import com.brydonleonard.gatekey.Config
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
+import com.brydonleonard.gatekey.persistence.model.KeyModel
+import com.brydonleonard.gatekey.persistence.model.UserModel
+import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
+import com.j256.ormlite.dao.Dao
+import com.j256.ormlite.jdbc.JdbcPooledConnectionSource
+import com.j256.ormlite.table.TableUtils
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
-import java.sql.Connection
-import java.sql.DriverManager
 
+
+/**
+ * Responsible for configuring the DB as a whole and acts as a central source of DAOs, rather than all individual store
+ * implementations having to pull in the individual ones that they use.
+ *
+ * Also allows other processes to check when the DB is ready for use.
+ */
 @Component
 class DbManager(
-        val config: Config
+        val connectionSource: JdbcPooledConnectionSource,
+        val conversationDao: Dao<ConversationStepModel, String>,
+        val keyDao: Dao<KeyModel, String>,
+        val userDao: Dao<UserModel, String>,
+        val userRegistrationTokenDao: Dao<UserRegistrationTokenModel, String>
 ) {
     final var ready = false
         private set
 
     @PostConstruct
     fun setupDb() {
-        withConnection { connection ->
-            val statement = connection.createStatement()
-
-            statement.executeUpdate(
-                    """
-                create table if not exists gate_keys (
-                    key text primary key, 
-                    expiry long,
-                    single_use integer,
-                    assignee text,
-                    first_use long
-                )
-                """.trimIndent()
-            )
-
-            statement.executeUpdate(
-                    """
-                create table if not exists users (
-                    id text primary key,
-                    name text not null,
-                    permissions text not null,
-                    chat_id text not null
-                )
-                """.trimIndent()
-            )
-
-            statement.executeUpdate(
-                    """
-                create table if not exists user_registration_tokens (
-                    token text primary key,
-                    expiry long not null,
-                    permissions text not null
-                )
-                """.trimIndent()
-            )
-
-            statement.executeUpdate(
-                    """
-                create table if not exists conversations (
-                    chat_id text not null,
-                    outbound_message_id text not null,
-                    conversation_step_type text not null,
-                    primary key(chat_id, outbound_message_id)
-                )
-                """.trimIndent()
-            )
-        }
+        TableUtils.createTableIfNotExists(connectionSource, ConversationStepModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, KeyModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, UserModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, UserRegistrationTokenModel::class.java)
 
         ready = true
     }
-
-    fun <T> withConnection(function: (Connection) -> T): T {
-        DriverManager.getConnection("jdbc:sqlite:${config.dbPath}").use { connection ->
-            try {
-                return function(connection)
-            } catch (e: Exception) {
-                logger.error(e) { "sad" }
-                throw RuntimeException(e)
-            }
-        }
-    }
-
-    companion object {
-        private val logger = KotlinLogging.logger(DbManager::class.qualifiedName!!)
-    }
-
-    enum class KeyFields(val columnName: String) {
-        KEY("key"),
-        EXPIRY("expiry"),
-        SINGLE_USE("single_use"),
-        ASSIGNEE("assignee"),
-        FIRST_USE("first_use")
-    }
-
-    enum class UserFields(val columnName: String) {
-        ID("id"),
-        NAME("name"),
-        PERMISSIONS("permissions"),
-        CHAT_ID("chat_id")
-    }
-
-    enum class UserRegistrationTokensFields(val columeName: String) {
-        TOKEN("token"),
-        EXPIRY("expiry"),
-        PERMISSIONS("permissions")
-    }
-
-    enum class ConversationFields(val columnName: String) {
-        CHAT_ID("chat_id"),
-        OUTBOUND_MESSAGE_ID("outbound_message_id"),
-        CONVERSATION_STEP_TYPE("conversation_step_type")
-    }
-
-    class DbReadyChecker(var dbReady: Boolean)
 }
+

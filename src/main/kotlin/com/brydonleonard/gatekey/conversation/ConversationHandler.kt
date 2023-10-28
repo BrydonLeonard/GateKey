@@ -1,19 +1,18 @@
 package com.brydonleonard.gatekey.conversation
 
-import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
-import com.brydonleonard.gatekey.persistence.query.ConversationQueries
+import com.brydonleonard.gatekey.persistence.query.ConversationStore
 import org.springframework.stereotype.Component
 
 // TODO add start time to conversations so we can sweep them
 @Component
-class ConversationHandler(val dbManager: DbManager) {
+class ConversationHandler(val conversationStore: ConversationStore) {
     fun awaitResponse(conversationStep: ConversationStepModel) {
-        ConversationQueries.putConversationStep(dbManager, conversationStep)
+        conversationStore.putConversationStep(conversationStep)
     }
 
     fun stopAwaiting(conversationStep: ConversationStepModel) {
-        ConversationQueries.deleteConversationStep(dbManager, conversationStep)
+        conversationStore.deleteConversationStep(conversationStep)
     }
 
     fun checkForConversation(chatId: Long, replyMessageId: Long?): ConversationStepModel? {
@@ -21,10 +20,10 @@ class ConversationHandler(val dbManager: DbManager) {
             return null
         }
 
-        return ConversationQueries.checkForConversation(dbManager, chatId, replyMessageId)
+        return conversationStore.checkForConversation(chatId, replyMessageId)
     }
 
     fun getAllChatIds(): List<Long> {
-        return ConversationQueries.listAllChatIds(dbManager)
+        return conversationStore.listAllChatIds()
     }
 }
