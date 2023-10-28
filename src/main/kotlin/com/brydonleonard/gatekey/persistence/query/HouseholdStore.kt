@@ -13,4 +13,12 @@ class HouseholdStore(private val dbManager: DbManager) {
     fun noHouseholds(): Boolean {
         return dbManager.householdDao.queryForAll().isEmpty()
     }
+
+    fun listHouseholds(): List<HouseholdModel> {
+        return dbManager.householdDao.queryForAll()
+    }
+
+    fun getHousehold(id: String): HouseholdModel {
+        return dbManager.householdDao.queryForId(id)
+    }
 }

@@ -29,24 +29,24 @@ class UserRegistrationManager(val config: Config, val dbManager: DbManager, val 
             sleep(500)
         }
 
-        if (userStore.noUsers()) {
-            val newUserToken = generateNewUserToken(PermissionBundle.ADMIN)
-            logger.info { "The users table is empty. Generated a first-time new user token: ${tokenToLink(newUserToken.token)}" }
-        }
-
         if (householdStore.noHouseholds()) {
             householdStore.addHousehold(config.defaultHouseholdId)
             logger.info { "The households table is empty. Inserted the default household (${config.defaultHouseholdId})" }
+        }
 
+        if (userStore.noUsers()) {
+            val household = householdStore.getHousehold(config.defaultHouseholdId)
+            val newUserToken = generateNewUserToken(PermissionBundle.ADMIN, household)
+            logger.info { "The users table is empty. Generated a first-time new user token: ${tokenToLink(newUserToken.token)}" }
         }
     }
 
-    fun generateNewUserToken(permissionBundle: PermissionBundle): UserRegistrationTokenModel {
+    fun generateNewUserToken(permissionBundle: PermissionBundle, household: HouseholdModel): UserRegistrationTokenModel {
         val token = UserRegistrationTokenModel(
                 UUID.randomUUID().toString(),
                 Instant.now().plus(REGISTRATION_TOKEN_VALIDITY).epochSecond,
                 permissionBundle.permissions,
-                HouseholdModel.default(config)
+                household
         )
 
         userRegistrationStore.createToken(token)
@@ -74,6 +74,18 @@ class UserRegistrationManager(val config: Config, val dbManager: DbManager, val 
         userStore.addUser(user)
 
         userRegistrationStore.deleteToken(token)
+    }
+
+    fun addHousehold(householdId: String) {
+        householdStore.addHousehold(householdId)
+    }
+
+    fun getAllHouseholds(): List<HouseholdModel> {
+        return householdStore.listHouseholds();
+    }
+
+    fun getHousehold(id: String): HouseholdModel {
+        return householdStore.getHousehold(id)
     }
 
     companion object {

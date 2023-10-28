@@ -23,10 +23,16 @@ class KeyStore(private val dbManager: DbManager) {
         return dbManager.keyDao.queryForId(keyCode)
     }
 
-    fun getKeysWithExpiryAfter(minExpiry: Long): List<KeyModel> {
-        return dbManager.keyDao.queryBuilder().where()
+    fun getKeysWithExpiryAfter(minExpiry: Long, householdId: String? = null): List<KeyModel> {
+        val query = dbManager.keyDao.queryBuilder().where()
                 .gt(KeyModel.Fields.EXPIRY.columnName, minExpiry)
-                .query()
+
+        if (householdId != null) {
+            query.and()
+                    .eq(KeyModel.Fields.HOUSEHOLD.columnName, householdId)
+        }
+
+        return query.query()
     }
 
     fun getKeysWithExpiryBefore(maxExpiry: Long): List<KeyModel> {

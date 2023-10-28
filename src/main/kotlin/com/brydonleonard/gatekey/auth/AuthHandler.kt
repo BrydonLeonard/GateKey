@@ -1,5 +1,6 @@
 package com.brydonleonard.gatekey.auth
 
+import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.query.UserStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component
@@ -32,6 +33,10 @@ class AuthHandler(val userStore: UserStore) {
 
     fun userExists(id: String): Boolean {
         return userStore.getUser(id) != null
+    }
+
+    fun getUser(id: String): UserModel? {
+        return userStore.getUser(id)
     }
 
     companion object {

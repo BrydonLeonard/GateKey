@@ -7,18 +7,25 @@ import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.ConversationStepType
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.registration.UserRegistrationManager
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.bot
 import com.github.kotlintelegrambot.dispatch
+import com.github.kotlintelegrambot.dispatcher.callbackQuery
 import com.github.kotlintelegrambot.dispatcher.command
+import com.github.kotlintelegrambot.dispatcher.handlers.CallbackQueryHandlerEnvironment
 import com.github.kotlintelegrambot.dispatcher.handlers.CommandHandlerEnvironment
+import com.github.kotlintelegrambot.dispatcher.handlers.MessageHandlerEnvironment
 import com.github.kotlintelegrambot.dispatcher.message
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ForceReplyMarkup
+import com.github.kotlintelegrambot.entities.InlineKeyboardMarkup
 import com.github.kotlintelegrambot.entities.KeyboardReplyMarkup
 import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.github.kotlintelegrambot.entities.ReplyMarkup
+import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import com.github.kotlintelegrambot.entities.keyboard.KeyboardButton
 import com.github.kotlintelegrambot.extensions.filters.Filter
 import com.github.kotlintelegrambot.logging.LogLevel
@@ -59,18 +66,9 @@ class TelegramBot(
             dispatch {
                 command("createKey") {
                     if (authorized(Permissions.CREATE_KEY)) {
-                        val message = bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "Who will the key be for?",
-                                replyMarkup = ForceReplyMarkup()
-                        )
-
-                        conversationHandler.awaitResponse(
-                                ConversationStepModel(
-                                        this.message.chat.id,
-                                        message.get().messageId,
-                                        ConversationStepType.CREATE_SINGLE_USE_TOKEN
-                                )
+                        awaitResponse(
+                                ConversationStepType.CREATE_SINGLE_USE_TOKEN,
+                                "Who will the key be for?"
                         )
                     }
                     return@command
@@ -78,11 +76,11 @@ class TelegramBot(
 
                 command("listKeys") {
                     if (authorized(Permissions.LIST_KEYS)) {
-                        val keys =
-                                keyManager.getActiveKeys().joinToString("\n") {
-                                    val assigneeSuffix = if (it.assignee != null) " (for ${it.assignee})" else ""
-                                    "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
-                                }
+                        val user = authHandler.getUser(this.message.from!!.id.toString())
+                        val keys = keyManager.getActiveKeys(user!!.household).joinToString("\n") {
+                            val assigneeSuffix = if (it.assignee != null) " (for ${it.assignee})" else ""
+                            "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
+                        }
 
                         bot.sendMessage(
                                 chatId = ChatId.fromId(message.chat.id),
@@ -94,19 +92,35 @@ class TelegramBot(
 
                 command("addUser") {
                     if (authorized(Permissions.ADD_USER)) {
-                        val token = userRegistrationManager.generateNewUserToken(PermissionBundle.ADMIN)
-
                         bot.sendMessage(
                                 chatId = ChatId.fromId(message.chat.id),
-                                text = "A token has been created for the new user. Here's the link:"
-                        )
-
-                        bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = UserRegistrationManager.tokenToLink(token.token)
+                                text = "What household should the user be added to?",
+                                replyMarkup = InlineKeyboardMarkup.create(
+                                        userRegistrationManager.getAllHouseholds().chunked(5).map { chunk ->
+                                            chunk.map {
+                                                InlineKeyboardButton.CallbackData(it.id, it.toCallbackQueryString())
+                                            }
+                                        }
+                                )
                         )
                     }
                     return@command
+                }
+
+                command("addHousehold") {
+                    if (authorized(Permissions.ADD_HOUSEHOLD)) {
+                        awaitResponse(
+                                ConversationStepType.CREATE_HOUSEHOLD,
+                                "What should the household's ID be?"
+                        )
+                    }
+                    return@command
+                }
+
+                callbackQuery {
+                    if (authorized(Permissions.ADD_USER)) {
+                        handleAddUserCallback()
+                    }
                 }
 
                 /**
@@ -155,38 +169,7 @@ class TelegramBot(
                                 this.message.replyToMessage?.messageId
                         )
 
-
-
-                        if (conversationStep != null &&
-                                conversationStep.conversationStepType == ConversationStepType.CREATE_SINGLE_USE_TOKEN
-                        ) {
-                            val key = keyManager.generateKey(this.message.text)
-                            conversationHandler.stopAwaiting(conversationStep)
-
-                            bot.sendMessage(
-                                    chatId = ChatId.fromId(message.chat.id),
-                                    text = "${key.assignee}'s key '${key.key}' will be valid until " +
-                                            "${key.formattedExpiry()} for a single use. Here's a message that you " +
-                                            "can forward straight to them:",
-                                    replyMarkup = keyboard()
-                            )
-                            bot.sendMessage(
-                                    chatId = ChatId.fromId(message.chat.id),
-                                    text = """
-                                        Hi, ${key.assignee}. Your L'Afrique keycode is
-                                        
-                                                *${key.formattedKey}*
-                                        
-                                        When you arrive at L'Afrique Eco Village:
-                                        1. Dial 39📞 on the intercom keypad
-                                        2. Wait for the call to connect
-                                        3. Dial ${key.formattedKey}#
-                                        4. The gate will open                          
-                                    """.trimIndent(),
-                                    replyMarkup = keyboard(),
-                                    parseMode = ParseMode.MARKDOWN,
-                            )
-                        } else {
+                        if (!handleConversation(conversationStep)) {
                             logger.info { message.chat.id }
 
                             bot.sendMessage(
@@ -208,10 +191,108 @@ class TelegramBot(
         bot.startPolling()
     }
 
+    private fun CommandHandlerEnvironment.awaitResponse(stepType: ConversationStepType, messageText: String, replyMarkup: ReplyMarkup? = null) {
+        val message = bot.sendMessage(
+                chatId = ChatId.fromId(message.chat.id),
+                text = messageText,
+                replyMarkup = replyMarkup ?: ForceReplyMarkup()
+        )
+
+        conversationHandler.awaitResponse(
+                ConversationStepModel(
+                        this.message.chat.id,
+                        message.get().messageId,
+                        stepType
+                )
+        )
+    }
+
+    /**
+     * Handles awaited conversations. Returns true if there was a conversation and it was handled.
+     */
+    private fun MessageHandlerEnvironment.handleConversation(conversationStep: ConversationStepModel?): Boolean {
+        if (conversationStep == null) {
+            return false
+        }
+
+        when (conversationStep.conversationStepType) {
+            ConversationStepType.CREATE_SINGLE_USE_TOKEN -> handleCreateSingleUseTokenConversation(conversationStep)
+            ConversationStepType.CREATE_HOUSEHOLD -> handleCreateHouseholdConversation(conversationStep)
+        }
+
+        return true
+    }
+
+    private fun MessageHandlerEnvironment.handleCreateSingleUseTokenConversation(conversationStep: ConversationStepModel) {
+        val user = authHandler.getUser(this.message.from!!.id.toString())
+        val household = userRegistrationManager.getHousehold(user!!.household.id)
+        val key = keyManager.generateKey(this.message.text, household)
+        conversationHandler.stopAwaiting(conversationStep)
+
+        bot.sendMessage(
+                chatId = ChatId.fromId(message.chat.id),
+                text = "${key.assignee}'s key '${key.key}' will be valid until " +
+                        "${key.formattedExpiry()} for a single use. Here's a message that you " +
+                        "can forward straight to them:",
+                replyMarkup = keyboard()
+        )
+        bot.sendMessage(
+                chatId = ChatId.fromId(message.chat.id),
+                text = """
+                                        Hi, ${key.assignee}. Your L'Afrique keycode is
+                                        
+                                                *${key.formattedKey}*
+                                        
+                                        When you arrive at L'Afrique Eco Village:
+                                        1. Dial 39📞 on the intercom keypad
+                                        2. Wait for the call to connect
+                                        3. Dial ${key.formattedKey}#
+                                        4. The gate will open                          
+                                    """.trimIndent(),
+                replyMarkup = keyboard(),
+                parseMode = ParseMode.MARKDOWN,
+        )
+    }
+
+    private fun MessageHandlerEnvironment.handleCreateHouseholdConversation(conversationStep: ConversationStepModel) {
+        conversationHandler.stopAwaiting(conversationStep)
+
+        val householdId = this.message.text!!
+        userRegistrationManager.addHousehold(householdId)
+
+        bot.sendMessage(
+                chatId = ChatId.fromId(message.chat.id),
+                text = "New household '$householdId' has been added.",
+                replyMarkup = keyboard()
+        )
+    }
+
+    private fun CallbackQueryHandlerEnvironment.handleAddUserCallback() {
+        val household = userRegistrationManager.getHousehold(HouseholdModel.callbackQueryStringToId(this.callbackQuery.data))
+        val token = userRegistrationManager.generateNewUserToken(PermissionBundle.RESIDENT, household)
+        val chatId = this.callbackQuery.message!!.chat.id
+
+        bot.sendMessage(
+                chatId = ChatId.fromId(chatId),
+                text = "A token has been created for a new user in household ${household.id}. Here's the link:"
+        )
+
+        bot.sendMessage(
+                chatId = ChatId.fromId(chatId),
+                text = UserRegistrationManager.tokenToLink(token.token)
+        )
+
+        bot.editMessageReplyMarkup(
+                ChatId.fromId(chatId),
+                callbackQuery.message!!.messageId,
+                replyMarkup = InlineKeyboardMarkup.create(emptyList<List<InlineKeyboardButton>>())
+        )
+    }
+
     private fun keyboard(): KeyboardReplyMarkup = KeyboardReplyMarkup(
             keyboard = listOf(listOf(KeyboardButton("/createKey"))) +
                     listOf(listOf(KeyboardButton("/listKeys"))) +
-                    listOf(listOf(KeyboardButton("/addUser"))),
+                    listOf(listOf(KeyboardButton("/addHousehold"), KeyboardButton("/addUser"))),
             resizeKeyboard = true
     )
 
@@ -221,6 +302,18 @@ class TelegramBot(
         } else {
             bot.sendMessage(
                     chatId = ChatId.fromId(message.chat.id),
+                    text = "Unauthorized"
+            )
+            false
+        }
+    }
+
+    private fun CallbackQueryHandlerEnvironment.authorized(vararg permissions: Permissions): Boolean {
+        return if (authHandler.authorize(callbackQuery.from.id.toString(), permissions.toSet())) {
+            true
+        } else {
+            bot.sendMessage(
+                    chatId = ChatId.fromId(callbackQuery.message!!.chat.id),
                     text = "Unauthorized"
             )
             false

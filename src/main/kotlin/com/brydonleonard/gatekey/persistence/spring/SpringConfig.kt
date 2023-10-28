@@ -25,7 +25,7 @@ class SpringConfig {
             DaoManager.createDao(connectionSource, DbMigrationModel::class.java)
 
     @Bean
-    fun conversationDao(connectionSource: ConnectionSource): Dao<ConversationStepModel, String> =
+    fun conversationDao(connectionSource: ConnectionSource): Dao<ConversationStepModel, Long> =
             DaoManager.createDao(connectionSource, ConversationStepModel::class.java)
 
     @Bean

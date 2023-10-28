@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component
 @Component
 class ConversationStore(private val dbManager: DbManager) {
     fun putConversationStep(conversationStep: ConversationStepModel) {
+        // We can only have one ongoing conversation per chat, so clear out any old ones
+        dbManager.conversationDao.deleteById(conversationStep.chatId)
         dbManager.conversationDao.create(conversationStep)
     }
 

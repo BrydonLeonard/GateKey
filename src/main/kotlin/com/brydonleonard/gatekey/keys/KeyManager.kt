@@ -16,7 +16,7 @@ val SINGLE_USE_KEY_VALIDITY = 30 * 24.hours
 
 @Component
 class KeyManager(val keyStore: KeyStore) {
-    fun generateKey(assignee: String? = null): KeyModel {
+    fun generateKey(assignee: String? = null, household: HouseholdModel): KeyModel {
         // Not very idiomatic Kotlin, I know. It gets the job done.
         var keyExists = true
         var keyCode: String? = null
@@ -30,7 +30,7 @@ class KeyManager(val keyStore: KeyStore) {
                 keyCode!!,
                 Instant.now().plus(SINGLE_USE_KEY_VALIDITY.toJavaDuration()).epochSecond,
                 true,
-                HouseholdModel("39"),
+                household,
                 assignee
         )
 
@@ -39,8 +39,8 @@ class KeyManager(val keyStore: KeyStore) {
         return key
     }
 
-    fun getActiveKeys(): List<KeyModel> {
-        return keyStore.getKeysWithExpiryAfter(Instant.now().epochSecond)
+    fun getActiveKeys(household: HouseholdModel): List<KeyModel> {
+        return keyStore.getKeysWithExpiryAfter(Instant.now().epochSecond, household.id)
                 .filter { keyIsValid(it) }
                 .sortedBy { it.expiry }
     }

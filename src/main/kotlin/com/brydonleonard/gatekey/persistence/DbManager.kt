@@ -28,7 +28,7 @@ import java.sql.DriverManager
 class DbManager(
         val config: Config,
         val connectionSource: JdbcPooledConnectionSource,
-        val conversationDao: Dao<ConversationStepModel, String>,
+        val conversationDao: Dao<ConversationStepModel, Long>,
         val keyDao: Dao<KeyModel, String>,
         val userDao: Dao<UserModel, String>,
         val userRegistrationTokenDao: Dao<UserRegistrationTokenModel, String>,
