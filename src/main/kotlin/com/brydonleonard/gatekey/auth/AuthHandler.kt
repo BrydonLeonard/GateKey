@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component
 @Component
 class AuthHandler(val userStore: UserStore) {
     /**
-     * Returns true if the given user has permission to execute all of the given actions.
+     * Returns the user if authorized, or null if unauthorized
      */
-    fun authorize(id: String, actions: Set<Permissions>): Boolean {
-        val user = userStore.getUser(id) ?: return false
+    fun getAuthorizedUser(id: String, actions: Set<Permissions>): UserModel? {
+        val user = userStore.getUser(id) ?: return null
 
         val missingPermissions = actions - user.permissions
 
@@ -28,7 +28,10 @@ class AuthHandler(val userStore: UserStore) {
                 "Unauthorized user '${user.name}' attempted to take an action that requires $missingPermissions"
             }
         }
-        return missingPermissions.isEmpty()
+        if (missingPermissions.isEmpty()) {
+            return user
+        }
+        return null
     }
 
     fun userExists(id: String): Boolean {

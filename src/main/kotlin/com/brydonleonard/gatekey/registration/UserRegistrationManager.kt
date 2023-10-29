@@ -55,7 +55,7 @@ class UserRegistrationManager(val config: Config, val dbManager: DbManager, val 
     }
 
     // TODO all of this should really be done transactionally, but I don't feel like it right now
-    fun createUserFromToken(tokenString: String, userId: String, userName: String, chatId: String) {
+    fun createUserFromToken(tokenString: String, userId: String, userName: String, chatId: String): UserModel {
         val token = userRegistrationStore.getToken(tokenString)
                 ?: throw IllegalArgumentException("The token is invalid")
 
@@ -74,6 +74,8 @@ class UserRegistrationManager(val config: Config, val dbManager: DbManager, val 
         userStore.addUser(user)
 
         userRegistrationStore.deleteToken(token)
+
+        return user
     }
 
     fun addHousehold(householdId: String) {
