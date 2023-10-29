@@ -73,7 +73,7 @@ class VoiceController(
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
 
                 // Notify all users that the gate has been opened
-                conversationHandler.getAllChatIds().forEach {
+                conversationHandler.getAllChatsForHousehold(authorizedKey.household).forEach {
                     telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
                 }
             }

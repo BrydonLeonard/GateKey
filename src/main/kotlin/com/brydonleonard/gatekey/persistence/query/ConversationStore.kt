@@ -2,6 +2,8 @@ package com.brydonleonard.gatekey.persistence.query
 
 import com.brydonleonard.gatekey.persistence.DbManager
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
+import com.brydonleonard.gatekey.persistence.model.UserModel
 import org.springframework.stereotype.Component
 
 @Component
@@ -25,7 +27,10 @@ class ConversationStore(private val dbManager: DbManager) {
                 .first()
     }
 
-    fun listAllChatIds(): List<Long> {
-        return dbManager.userDao.queryForAll().map { it.chatId.toLong() }
+    fun getAllChatsForHousehold(household: HouseholdModel): List<Long> {
+        return dbManager.userDao.queryBuilder().where()
+                .eq(UserModel.Fields.HOUSEHOLD.columnName, household)
+                .query()
+                .map { it.chatId.toLong() }
     }
 }

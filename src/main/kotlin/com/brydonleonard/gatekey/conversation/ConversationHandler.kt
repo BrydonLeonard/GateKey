@@ -1,6 +1,7 @@
 package com.brydonleonard.gatekey.conversation
 
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.query.ConversationStore
 import org.springframework.stereotype.Component
 
@@ -23,7 +24,7 @@ class ConversationHandler(val conversationStore: ConversationStore) {
         return conversationStore.checkForConversation(chatId, replyMessageId)
     }
 
-    fun getAllChatIds(): List<Long> {
-        return conversationStore.listAllChatIds()
+    fun getAllChatsForHousehold(household: HouseholdModel): List<Long> {
+        return conversationStore.getAllChatsForHousehold(household)
     }
 }
