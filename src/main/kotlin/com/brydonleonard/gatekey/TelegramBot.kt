@@ -97,8 +97,7 @@ class TelegramBot(
                     authorized(setOf(Permissions.LIST_KEYS)) {
                         val user = authHandler.getUser(this.message.from!!.id.toString())
                         val keys = keyManager.getActiveKeys(user!!.household).joinToString("\n") {
-                            val assigneeSuffix = if (it.assignee != null) " (for ${it.assignee})" else ""
-                            "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
+                            "• \\[${it.formattedKey()}] for *${it.assignee}* expires ${it.formattedExpiry()}"
                         }
 
                         sendStandardMessage(keys, user)
