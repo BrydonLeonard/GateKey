@@ -223,7 +223,6 @@ class TelegramBot(
                     return@command
                 }
 
-                // https://t.me/LeonardHomeBot?start=UniqueStartMessage
                 message(UUIDFilter.not() and Filter.Command.not()) {
                     val user = authHandler.getUser(this.message.from!!.id.toString())
                     if (user != null) {

@@ -91,6 +91,6 @@ class UserRegistrationManager(val config: Config, val dbManager: DbManager, val 
     }
 
     companion object {
-        fun tokenToLink(token: String): String = "https://t.me/LeonardHomeBot?start=${token}"
+        fun tokenToLink(token: String): String = "https://t.me/GateKeyBot?start=${token}"
     }
 }
