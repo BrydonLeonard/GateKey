@@ -35,6 +35,22 @@ import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
 import java.util.UUID
 
+// I trim single newlines and treat them as "editor-only". It makes writing long strings easier, but lets Telegram handle
+// wrapping lines.
+val HELP_TEXT = """
+    This is *GateKey*, an app that'll create key codes for the complex gate 🏠. When visitors arrive at the complex, 
+    instead of the intercom phoning your phone, they'll type in the codes, which will open the gate automatically.
+    
+    
+    Tap /createKey and enter the name of the visitor that will use that key to create a key that will be valid for up to 30 days. 
+    When a key is used for the first time, a 5 minute timer starts. The visitor can use the key as many times as they like in 
+    those 5 minutes, just in case the gate doesn't work the first time. After the 5 minutes are up, the key will stop working 
+    permanently.
+    
+    
+    Tap /listKeys to get a list of all of your valid keys, the visitors that they're for, and their expiration dates.
+""".trimIndent().replace(Regex("(\n*)\n"), "$1")
+
 @Component
 class TelegramBot(
         val keyManager: KeyManager,
@@ -118,6 +134,18 @@ class TelegramBot(
                     return@command
                 }
 
+                command("help") {
+                    val user = authHandler.getUser(this.message.from!!.id.toString())
+                    if (user != null) {
+                        bot.sendMessage(
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = HELP_TEXT,
+                                replyMarkup = keyboard(user),
+                                parseMode = ParseMode.MARKDOWN,
+                        )
+                    }
+                }
+
                 callbackQuery {
                     authorized(setOf(Permissions.ADD_USER)) { user ->
                         handleAddUserCallback(user)
@@ -177,7 +205,8 @@ class TelegramBot(
 
                             bot.sendMessage(
                                     chatId = ChatId.fromId(message.chat.id),
-                                    text = "Create keys with the options in the menu below.",
+                                    text = "Tap /help for more information on how to use the GateKey app or tap /createKey" +
+                                            " to create a keycode.",
                                     replyMarkup = keyboard(user)
                             )
                         }
@@ -311,7 +340,8 @@ class TelegramBot(
         val buttons = listOf(
                 listOf(KeyboardButton("/createKey")),
                 listOf(KeyboardButton("/listKeys")),
-                lastRow
+                listOf(KeyboardButton("/help")),
+                lastRow,
         )
 
         return KeyboardReplyMarkup(
