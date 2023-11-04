@@ -45,8 +45,16 @@ class KeyManager(val keyStore: KeyStore) {
                 .sortedBy { it.expiry }
     }
 
+    fun getActiveKey(household: HouseholdModel, keyId: String): KeyModel? {
+        val key = keyStore.getKey(keyId)
+        if (key != null && keyIsValid(key) && key.household.id == household.id) {
+            return key
+        }
+        return null
+    }
+
     /**
-     * A key is valid
+     * If the keycode is valid, the associated [KeyModel] is returned. Otherwise null.
      */
     fun tryUseKey(keyCode: String): KeyModel? {
         val key = keyStore.getKey(keyCode) ?: return null
@@ -74,6 +82,13 @@ class KeyManager(val keyStore: KeyStore) {
         }
 
         return !expired
+    }
+
+    /**
+     * Tombstones a key due to user-requested deletion
+     */
+    fun expireKey(key: KeyModel) {
+        keyStore.expireKey(key)
     }
 
     private fun updateFirstUse(key: KeyModel) {

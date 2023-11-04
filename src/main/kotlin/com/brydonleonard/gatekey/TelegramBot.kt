@@ -3,11 +3,11 @@ package com.brydonleonard.gatekey
 import com.brydonleonard.gatekey.auth.AuthHandler
 import com.brydonleonard.gatekey.auth.PermissionBundle
 import com.brydonleonard.gatekey.auth.Permissions
+import com.brydonleonard.gatekey.conversation.CallbackManager
 import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.ConversationStepType
-import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.registration.UserRegistrationManager
 import com.github.kotlintelegrambot.Bot
@@ -49,6 +49,8 @@ val HELP_TEXT = """
     
     
     Tap /listKeys to get a list of all of your valid keys, the visitors that they're for, and their expiration dates.
+    
+    Tap /deleteKey to get a list of your valid keys and choose one to delete.
 """.trimIndent().replace(Regex("(\n*)\n"), "$1")
 
 @Component
@@ -99,12 +101,28 @@ class TelegramBot(
                             "${it.key} expires at ${it.formattedExpiry()}$assigneeSuffix"
                         }
 
-                        bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = keys
-                        )
+                        sendStandardMessage(keys, user)
                     }
                     return@command
+                }
+
+                command("deleteKey") {
+                    authorized(setOf(Permissions.CREATE_KEY)) { user ->
+                        bot.sendMessage(
+                                chatId = ChatId.fromId(message.chat.id),
+                                text = "Which key would you like to delete?",
+                                replyMarkup = InlineKeyboardMarkup.create(
+                                        keyManager.getActiveKeys(user!!.household).chunked(2).map { chunk ->
+                                            chunk.map {
+                                                InlineKeyboardButton.CallbackData(
+                                                        "${it.key}: ${it.assignee}",
+                                                        CallbackManager.toCallbackDataWithId(CallbackManager.Callback.DELETE_KEY, it.key),
+                                                )
+                                            }
+                                        }
+                                )
+                        )
+                    }
                 }
 
                 command("addUser") {
@@ -115,7 +133,9 @@ class TelegramBot(
                                 replyMarkup = InlineKeyboardMarkup.create(
                                         userRegistrationManager.getAllHouseholds().chunked(5).map { chunk ->
                                             chunk.map {
-                                                InlineKeyboardButton.CallbackData(it.id, it.toCallbackQueryString())
+                                                InlineKeyboardButton.CallbackData(
+                                                        it.id, CallbackManager.toCallbackDataWithId(CallbackManager.Callback.ADD_USER_HOUSEHOLD, it.id)
+                                                )
                                             }
                                         }
                                 )
@@ -137,19 +157,19 @@ class TelegramBot(
                 command("help") {
                     val user = authHandler.getUser(this.message.from!!.id.toString())
                     if (user != null) {
-                        bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = HELP_TEXT,
-                                replyMarkup = keyboard(user),
-                                parseMode = ParseMode.MARKDOWN,
-                        )
+                        sendStandardMessage(HELP_TEXT, user)
                     }
+                    return@command
                 }
 
                 callbackQuery {
-                    authorized(setOf(Permissions.ADD_USER)) { user ->
-                        handleAddUserCallback(user)
+                    when (CallbackManager.callbackTypeForData(callbackQuery.data)) {
+                        CallbackManager.Callback.DELETE_KEY -> handleDeleteKeyCallback()
+                        CallbackManager.Callback.DELETE_KEY_YES -> handleDeleteKeyYes()
+                        CallbackManager.Callback.DELETE_KEY_NO -> handleDeleteKeyNo()
+                        CallbackManager.Callback.ADD_USER_HOUSEHOLD -> handleAddUserCallback()
                     }
+                    return@callbackQuery
                 }
 
                 /**
@@ -159,11 +179,7 @@ class TelegramBot(
                     logger.info { "Received a registration request from ${message.from!!.firstName} ${message.from!!.lastName}" }
                     val user = authHandler.getUser(this.message.from!!.id.toString())
                     if (user != null) {
-                        bot.sendMessage(
-                                chatId = ChatId.fromId(message.chat.id),
-                                text = "This account is already registered.",
-                                replyMarkup = keyboard(user)
-                        )
+                        sendStandardMessage("This account is already registered.", user)
                     } else {
                         try {
                             UUID.fromString(args[0])
@@ -175,12 +191,8 @@ class TelegramBot(
                                     this.message.chat.id.toString()
                             )
 
-                            bot.sendMessage(
-                                    chatId = ChatId.fromId(message.chat.id),
-                                    text = "Your account has been registered. Welcome to GateKey! " +
-                                            "Create keys with the options in the menu below",
-                                    replyMarkup = keyboard(newUser)
-                            )
+                            sendStandardMessage("Your account has been registered. Welcome to GateKey! " +
+                                    "Create keys with the options in the menu below", newUser)
                         } catch (e: IllegalArgumentException) {
                             logger.error(e) { "Failed to register user" }
                             bot.sendMessage(
@@ -189,6 +201,7 @@ class TelegramBot(
                             )
                         }
                     }
+                    return@command
                 }
 
                 // https://t.me/LeonardHomeBot?start=UniqueStartMessage
@@ -203,12 +216,7 @@ class TelegramBot(
                         if (!handleConversation(user, conversationStep)) {
                             logger.info { message.chat.id }
 
-                            bot.sendMessage(
-                                    chatId = ChatId.fromId(message.chat.id),
-                                    text = "Tap /help for more information on how to use the GateKey app or tap /createKey" +
-                                            " to create a keycode.",
-                                    replyMarkup = keyboard(user)
-                            )
+                            sendStandardMessage("Tap /help for more information on how to use the GateKey app.", user)
                         }
                     } else {
                         bot.sendMessage(
@@ -216,6 +224,7 @@ class TelegramBot(
                                 text = "Please enter your registration token to continue."
                         )
                     }
+                    return@message
                 }
             }
         }
@@ -261,29 +270,21 @@ class TelegramBot(
         val key = keyManager.generateKey(this.message.text, household)
         conversationHandler.stopAwaiting(conversationStep)
 
-        bot.sendMessage(
-                chatId = ChatId.fromId(message.chat.id),
-                text = "${key.assignee}'s key '${key.key}' will be valid until " +
-                        "${key.formattedExpiry()} for a single use. Here's a message that you " +
-                        "can forward straight to them:",
-                replyMarkup = keyboard(user)
-        )
-        bot.sendMessage(
-                chatId = ChatId.fromId(message.chat.id),
-                text = """
-                                        Hi, ${key.assignee}. Your L'Afrique keycode is
-                                        
-                                                *${key.formattedKey}*
-                                        
-                                        When you arrive at L'Afrique Eco Village:
-                                        1. Dial 39📞 on the intercom keypad
-                                        2. Wait for the call to connect
-                                        3. Dial ${key.formattedKey}#
-                                        4. The gate will open                          
-                                    """.trimIndent(),
-                replyMarkup = keyboard(user),
-                parseMode = ParseMode.MARKDOWN,
-        )
+        sendStandardMessage("${key.assignee}'s key '${key.key}' will be valid until " +
+                "${key.formattedExpiry()} for a single use. Here's a message that you " +
+                "can forward straight to them:", user)
+        sendStandardMessage("""
+                    Hi, ${key.assignee}. Your L'Afrique keycode is
+                    
+                            *${key.formattedKey()}*
+                    
+                    When you arrive at L'Afrique Eco Village:
+                    1. Dial 39📞 on the intercom keypad
+                    2. Wait for the call to connect
+                    3. Dial ${key.formattedKey()}#
+                    4. The gate will open                          
+                """.trimIndent(),
+                user)
     }
 
     private fun MessageHandlerEnvironment.handleCreateHouseholdConversation(user: UserModel, conversationStep: ConversationStepModel) {
@@ -292,29 +293,113 @@ class TelegramBot(
         val householdId = this.message.text!!
         userRegistrationManager.addHousehold(householdId)
 
+        sendStandardMessage("New household '$householdId' has been added.", user)
+    }
+
+    private fun CallbackQueryHandlerEnvironment.handleDeleteKeyCallback() {
+        authorized(setOf(Permissions.CREATE_KEY)) { user ->
+            val chatId = this.callbackQuery.message!!.chat.id
+            val keyId = CallbackManager.callbackIdForData(this.callbackQuery.data)
+            val key = keyManager.getActiveKey(user.household, keyId)
+
+            if (key == null) {
+                sendStandardMessage("That key is already invalid!", user)
+                return@authorized
+            }
+
+            bot.sendMessage(
+                    chatId = ChatId.fromId(chatId),
+                    text = "Are you sure you want to delete key ${key.formattedKey()}? It's for ${key.assignee}" +
+                            " and will expire at ${key.formattedExpiry()}.",
+                    replyMarkup = InlineKeyboardMarkup.create(
+                            listOf(
+                                    InlineKeyboardButton.CallbackData(
+                                            "Yes",
+                                            CallbackManager.toCallbackDataWithId(CallbackManager.Callback.DELETE_KEY_YES, key.key)
+                                    ),
+                                    InlineKeyboardButton.CallbackData(
+                                            "No",
+                                            CallbackManager.toCallbackDataWithId(CallbackManager.Callback.DELETE_KEY_NO, key.key)
+                                    )
+                            )
+                    )
+            )
+
+            clearCallbackKeyboard()
+        }
+    }
+
+    private fun CallbackQueryHandlerEnvironment.handleDeleteKeyYes() {
+        authorized(setOf(Permissions.CREATE_KEY)) { user ->
+            val keyId = CallbackManager.callbackIdForData(this.callbackQuery.data)
+            val key = keyManager.getActiveKey(user.household, keyId)
+
+            if (key == null) {
+                sendStandardMessage("That key is already invalid!", user)
+                return@authorized
+            }
+
+            try {
+                keyManager.expireKey(key)
+                sendStandardMessage("${key.formattedKey()} has been deleted", user)
+            } catch (e: Exception) {
+                sendStandardMessage("Something went wrong while deleting the key. It may already be deleted", user)
+            }
+            clearCallbackKeyboard()
+        }
+    }
+
+    private fun CallbackQueryHandlerEnvironment.handleDeleteKeyNo() {
+        authorized(setOf(Permissions.CREATE_KEY)) { user ->
+            sendStandardMessage("Cancelled!", user)
+            clearCallbackKeyboard()
+        }
+    }
+
+    private fun CallbackQueryHandlerEnvironment.handleAddUserCallback() {
+        authorized(setOf(Permissions.ADD_USER)) { user ->
+            val household = userRegistrationManager.getHousehold(CallbackManager.callbackIdForData(this.callbackQuery.data))
+            val token = userRegistrationManager.generateNewUserToken(PermissionBundle.RESIDENT, household)
+
+            sendStandardMessage("A token has been created for a new user in household ${household.id}. Here's the link:", user)
+            sendStandardMessage(UserRegistrationManager.tokenToLink(token.token), user)
+
+            clearCallbackKeyboard()
+        }
+    }
+
+    private fun CallbackQueryHandlerEnvironment.sendStandardMessage(message: String, user: UserModel) {
+        val chatId = this.callbackQuery.message!!.chat.id
+
+        sendStandardMessage(chatId, message, user)
+    }
+
+    private fun CommandHandlerEnvironment.sendStandardMessage(message: String, user: UserModel) {
+        val chatId = this.message.chat.id
+
+        sendStandardMessage(chatId, message, user)
+    }
+
+    private fun MessageHandlerEnvironment.sendStandardMessage(message: String, user: UserModel) {
+        val chatId = this.message.chat.id
+
+        sendStandardMessage(chatId, message, user)
+    }
+
+    private fun sendStandardMessage(chatId: Long, message: String, user: UserModel) {
         bot.sendMessage(
-                chatId = ChatId.fromId(message.chat.id),
-                text = "New household '$householdId' has been added.",
-                replyMarkup = keyboard(user)
+                chatId = ChatId.fromId(chatId),
+                text = message,
+                replyMarkup = keyboard(user),
+                parseMode = ParseMode.MARKDOWN,
         )
     }
 
-    private fun CallbackQueryHandlerEnvironment.handleAddUserCallback(user: UserModel) {
-        val household = userRegistrationManager.getHousehold(HouseholdModel.callbackQueryStringToId(this.callbackQuery.data))
-        val token = userRegistrationManager.generateNewUserToken(PermissionBundle.RESIDENT, household)
+    /**
+     * Clears the inline keyboard of the message that triggered this callback
+     */
+    private fun CallbackQueryHandlerEnvironment.clearCallbackKeyboard() {
         val chatId = this.callbackQuery.message!!.chat.id
-
-        bot.sendMessage(
-                chatId = ChatId.fromId(chatId),
-                text = "A token has been created for a new user in household ${household.id}. Here's the link:"
-        )
-
-        bot.sendMessage(
-                chatId = ChatId.fromId(chatId),
-                text = UserRegistrationManager.tokenToLink(token.token),
-                replyMarkup = keyboard(user)
-        )
-
         bot.editMessageReplyMarkup(
                 ChatId.fromId(chatId),
                 callbackQuery.message!!.messageId,
@@ -339,7 +424,7 @@ class TelegramBot(
 
         val buttons = listOf(
                 listOf(KeyboardButton("/createKey")),
-                listOf(KeyboardButton("/listKeys")),
+                listOf(KeyboardButton("/listKeys"), KeyboardButton("/deleteKey")),
                 listOf(KeyboardButton("/help")),
                 lastRow,
         )

@@ -10,11 +10,7 @@ class HouseholdModel(
 ) {
     constructor() : this("")
 
-    fun toCallbackQueryString() = "household-$id"
-
     companion object {
         fun default(config: Config) = HouseholdModel(config.defaultHouseholdId)
-
-        fun callbackQueryStringToId(s: String) = s.split("-").last()
     }
 }

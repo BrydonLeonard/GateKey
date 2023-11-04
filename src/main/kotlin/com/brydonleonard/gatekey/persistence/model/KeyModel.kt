@@ -24,7 +24,7 @@ data class KeyModel(
         return sdf.format(netDate)
     }
 
-    val formattedKey = key.chunked(3).joinToString(" ")
+    fun formattedKey() = key.chunked(3).joinToString(" ")
 
     enum class Fields(val columnName: String) {
         KEY("key"),
