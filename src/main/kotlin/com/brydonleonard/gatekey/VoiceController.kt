@@ -2,6 +2,7 @@ package com.brydonleonard.gatekey
 
 import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
+import com.brydonleonard.gatekey.metrics.MetricPublisher
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.twilio.security.RequestValidator
 import com.twilio.twiml.VoiceResponse
@@ -29,7 +30,8 @@ class VoiceController(
         val keyManager: KeyManager,
         val conversationHandler: ConversationHandler,
         val telegramBot: TelegramBot,
-        val config: Config
+        val config: Config,
+        val metricPublisher: MetricPublisher
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
@@ -62,14 +64,17 @@ class VoiceController(
 
             if (!digits.matches("^[0-9]{6}$".toRegex())) {
                 logger.warn { "The key didn't match the expected pattern" }
+                metricPublisher.publish("useKey-badKey", 1.0)
                 return ok(builder.invalidCode(digits).gatherKey())
             }
             val authorizedKey = authorizeKey(digits) ?: run {
                 logger.warn { "The key was not authorized" }
+                metricPublisher.publish("useKey-unauthorized", 1.0)
                 return ok(builder.invalidCode(digits).gatherKey())
             }
 
             return ok(builder.openGate()).also {
+                metricPublisher.publish("useKey-success", 1.0)
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
 
                 // Notify all users that the gate has been opened

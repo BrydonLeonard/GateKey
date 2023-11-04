@@ -6,6 +6,7 @@ import com.brydonleonard.gatekey.auth.Permissions
 import com.brydonleonard.gatekey.conversation.CallbackManager
 import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
+import com.brydonleonard.gatekey.metrics.MetricPublisher
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.ConversationStepType
 import com.brydonleonard.gatekey.persistence.model.UserModel
@@ -50,6 +51,7 @@ val HELP_TEXT = """
     
     Tap /listKeys to get a list of all of your valid keys, the visitors that they're for, and their expiration dates.
     
+    
     Tap /deleteKey to get a list of your valid keys and choose one to delete.
 """.trimIndent().replace(Regex("(\n*)\n"), "$1")
 
@@ -59,7 +61,8 @@ class TelegramBot(
         val authHandler: AuthHandler,
         val userRegistrationManager: UserRegistrationManager,
         val conversationHandler: ConversationHandler,
-        val config: Config
+        val config: Config,
+        val metricPublisher: MetricPublisher
 ) {
     private val logger = KotlinLogging.logger(TelegramBot::class.qualifiedName!!)
 
@@ -122,6 +125,7 @@ class TelegramBot(
                                 )
                         )
                     }
+                    return@command
                 }
 
                 command("addUser") {
@@ -139,6 +143,7 @@ class TelegramBot(
                                         }
                                 )
                         )
+                        metricPublisher.publish("addUser", 1.0)
                     }
                     return@command
                 }
@@ -284,6 +289,8 @@ class TelegramBot(
                     4. The gate will open                          
                 """.trimIndent(),
                 user)
+
+        metricPublisher.publish("createKey", 1.0)
     }
 
     private fun MessageHandlerEnvironment.handleCreateHouseholdConversation(user: UserModel, conversationStep: ConversationStepModel) {
@@ -341,8 +348,11 @@ class TelegramBot(
             try {
                 keyManager.expireKey(key)
                 sendStandardMessage("${key.formattedKey()} has been deleted", user)
+                metricPublisher.publish("deleteKey-success", 1.0)
             } catch (e: Exception) {
                 sendStandardMessage("Something went wrong while deleting the key. It may already be deleted", user)
+                metricPublisher.publish("deleteKey-success", 0.0)
+                metricPublisher.publish("deleteKey-error", 1.0)
             }
             clearCallbackKeyboard()
         }
@@ -352,6 +362,7 @@ class TelegramBot(
         authorized(setOf(Permissions.CREATE_KEY)) { user ->
             sendStandardMessage("Cancelled!", user)
             clearCallbackKeyboard()
+            metricPublisher.publish("deleteKey-cancelled", 1.0)
         }
     }
 
@@ -451,6 +462,8 @@ class TelegramBot(
                     chatId = ChatId.fromId(message.chat.id),
                     text = "Unauthorized"
             )
+
+            metricPublisher.publish("Unauthorized", 1.0)
         }
 
         return authorizedUser?.let { action(it) }
@@ -464,6 +477,8 @@ class TelegramBot(
                     chatId = ChatId.fromId(callbackQuery.message!!.chat.id),
                     text = "Unauthorized"
             )
+
+            metricPublisher.publish("Unauthorized", 1.0)
         }
 
         return authorizedUser?.let { action(it) }

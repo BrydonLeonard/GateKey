@@ -5,6 +5,7 @@ import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.DbMigrationModel
 import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
+import com.brydonleonard.gatekey.persistence.model.MetricModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
 import com.j256.ormlite.dao.Dao
@@ -39,6 +40,10 @@ class SpringConfig {
     @Bean
     fun userRegistrationTokenDao(connectionSource: ConnectionSource): Dao<UserRegistrationTokenModel, String> =
             DaoManager.createDao(connectionSource, UserRegistrationTokenModel::class.java)
+
+    @Bean
+    fun metricDao(connectionSource: ConnectionSource): Dao<MetricModel, Long> =
+            DaoManager.createDao(connectionSource, MetricModel::class.java)
 
     @Bean
     fun householdDao(connectionSource: ConnectionSource): Dao<HouseholdModel, String> =

@@ -6,6 +6,7 @@ import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.DbMigrationModel
 import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
+import com.brydonleonard.gatekey.persistence.model.MetricModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
 import com.j256.ormlite.dao.Dao
@@ -14,7 +15,6 @@ import com.j256.ormlite.table.TableUtils
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
-import org.sqlite.SQLiteException
 import java.sql.DriverManager
 
 
@@ -33,7 +33,8 @@ class DbManager(
         val userDao: Dao<UserModel, String>,
         val userRegistrationTokenDao: Dao<UserRegistrationTokenModel, String>,
         val householdDao: Dao<HouseholdModel, String>,
-        val migrationDao: Dao<DbMigrationModel, Int>
+        val migrationDao: Dao<DbMigrationModel, Int>,
+        val metricDao: Dao<MetricModel, Long>
 ) {
     final var ready = false
         private set
@@ -47,7 +48,8 @@ class DbManager(
                 keyDao,
                 userDao,
                 userRegistrationTokenDao,
-                householdDao
+                householdDao,
+                metricDao
         )
 
         val newTables = createTables(nonMigrationDaos)
@@ -72,6 +74,7 @@ class DbManager(
         TableUtils.createTableIfNotExists(connectionSource, UserModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, UserRegistrationTokenModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, HouseholdModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, MetricModel::class.java)
 
         return missingTables
     }
