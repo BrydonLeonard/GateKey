@@ -286,7 +286,9 @@ class TelegramBot(
                     1. Dial 39📞 on the intercom keypad
                     2. Wait for the call to connect
                     3. Dial ${key.formattedKey()}#
-                    4. The gate will open                          
+                    4. The gate will open                 
+                             
+                    If the gate doesn't open, try again from step 1.
                 """.trimIndent(),
                 user)
 
