@@ -362,7 +362,16 @@ class TelegramBot(
             val token = userRegistrationManager.generateNewUserToken(PermissionBundle.RESIDENT, household)
 
             sendStandardMessage("A token has been created for a new user in household ${household.id}. Here's the link:", user)
-            sendStandardMessage(UserRegistrationManager.tokenToLink(token.token), user)
+            sendStandardMessage("""
+                    Here's your Gatekey registration link!
+                    ${UserRegistrationManager.tokenToLink(token.token)}
+                    
+                    GateKey runs inside an app called Telegram, so if the link above doesn't work, you'll need to install Telegram first:
+                    - Android: https://play.google.com/store/apps/details?id=org.telegram.messenger
+                    - iPhone: https://apps.apple.com/us/app/telegram-messenger/id686449807
+                """.trimIndent(),
+                    user
+            )
 
             clearCallbackKeyboard()
         }
