@@ -10,6 +10,7 @@ import com.brydonleonard.gatekey.metrics.MetricPublisher
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.ConversationStepType
 import com.brydonleonard.gatekey.persistence.model.UserModel
+import com.brydonleonard.gatekey.persistence.query.FeedbackStore
 import com.brydonleonard.gatekey.registration.UserRegistrationManager
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.bot
@@ -43,16 +44,20 @@ val HELP_TEXT = """
     instead of the intercom phoning your phone, they'll type in the codes, which will open the gate automatically.
     
     
-    Tap /createKey and enter the name of the visitor that will use that key to create a key that will be valid for up to 30 days. 
+    🔑 Tap /createKey and enter the name of the visitor that will use that key. That will create a key that will be valid for up to 30 days. 
     When a key is used for the first time, a 5 minute timer starts. The visitor can use the key as many times as they like in 
     those 5 minutes, just in case the gate doesn't work the first time. After the 5 minutes are up, the key will stop working 
     permanently.
     
     
-    Tap /listKeys to get a list of all of your valid keys, the visitors that they're for, and their expiration dates.
+    📜 Tap /listKeys to get a list of all of your valid keys, the visitors that they're for, and their expiration dates.
     
     
-    Tap /deleteKey to get a list of your valid keys and choose one to delete.
+    🗑️ Tap /deleteKey to get a list of your valid keys and choose one to delete.
+    
+    
+    ⭐ Tap /feedback to send feedback to the developer of the app. If you're finding it useful or have found a bug, I want 
+    to hear about it!
 """.trimIndent().replace(Regex("(\n*)\n"), "$1")
 
 @Component
@@ -62,7 +67,8 @@ class TelegramBot(
         val userRegistrationManager: UserRegistrationManager,
         val conversationHandler: ConversationHandler,
         val config: Config,
-        val metricPublisher: MetricPublisher
+        val metricPublisher: MetricPublisher,
+        val feedbackStore: FeedbackStore
 ) {
     private val logger = KotlinLogging.logger(TelegramBot::class.qualifiedName!!)
 
@@ -159,9 +165,18 @@ class TelegramBot(
                 }
 
                 command("help") {
-                    val user = authHandler.getUser(this.message.from!!.id.toString())
-                    if (user != null) {
+                    authorized(emptySet()) { user ->
                         sendStandardMessage(HELP_TEXT, user)
+                    }
+                    return@command
+                }
+
+                command("feedback") {
+                    authorized(emptySet()) {
+                        awaitResponse(
+                                ConversationStepType.SEND_FEEDBACK,
+                                "What feedback would you like to send?"
+                        )
                     }
                     return@command
                 }
@@ -196,7 +211,7 @@ class TelegramBot(
                             )
 
                             sendStandardMessage("Your account has been registered. Welcome to GateKey! " +
-                                    "Create keys with the options in the menu below", newUser)
+                                    "Tap /help below to get started.", newUser)
                         } catch (e: IllegalArgumentException) {
                             logger.error(e) { "Failed to register user" }
                             bot.sendMessage(
@@ -263,6 +278,7 @@ class TelegramBot(
         when (conversationStep.conversationStepType) {
             ConversationStepType.CREATE_SINGLE_USE_TOKEN -> handleCreateSingleUseTokenConversation(user, conversationStep)
             ConversationStepType.CREATE_HOUSEHOLD -> handleCreateHouseholdConversation(user, conversationStep)
+            ConversationStepType.SEND_FEEDBACK -> handleSendFeedbackConversation(user, conversationStep)
         }
 
         return true
@@ -302,6 +318,15 @@ class TelegramBot(
         userRegistrationManager.addHousehold(householdId)
 
         sendStandardMessage("New household '$householdId' has been added.", user)
+    }
+
+    private fun MessageHandlerEnvironment.handleSendFeedbackConversation(user: UserModel, conversationStep: ConversationStepModel) {
+        conversationHandler.stopAwaiting(conversationStep)
+
+        val feedbackMessage = this.message.text!!
+        feedbackStore.putFeedback(feedbackMessage, user)
+
+        sendStandardMessage("Thank you for your feedback! It's been submitted.", user)
     }
 
     private fun CallbackQueryHandlerEnvironment.handleDeleteKeyCallback() {
@@ -446,7 +471,7 @@ class TelegramBot(
         val buttons = listOf(
                 listOf(KeyboardButton("/createKey")),
                 listOf(KeyboardButton("/listKeys"), KeyboardButton("/deleteKey")),
-                listOf(KeyboardButton("/help")),
+                listOf(KeyboardButton("/help"), KeyboardButton("/feedback")),
                 lastRow,
         )
 

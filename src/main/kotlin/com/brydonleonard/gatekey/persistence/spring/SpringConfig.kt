@@ -3,6 +3,7 @@ package com.brydonleonard.gatekey.persistence.spring
 import com.brydonleonard.gatekey.Config
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.DbMigrationModel
+import com.brydonleonard.gatekey.persistence.model.FeedbackModel
 import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.MetricModel
@@ -44,6 +45,10 @@ class SpringConfig {
     @Bean
     fun metricDao(connectionSource: ConnectionSource): Dao<MetricModel, Long> =
             DaoManager.createDao(connectionSource, MetricModel::class.java)
+
+    @Bean
+    fun feedbackDao(connectionSource: ConnectionSource): Dao<FeedbackModel, Int> =
+            DaoManager.createDao(connectionSource, FeedbackModel::class.java)
 
     @Bean
     fun householdDao(connectionSource: ConnectionSource): Dao<HouseholdModel, String> =

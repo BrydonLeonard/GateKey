@@ -4,6 +4,7 @@ import com.brydonleonard.gatekey.Config
 import com.brydonleonard.gatekey.persistence.ext.dbMigrations
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.DbMigrationModel
+import com.brydonleonard.gatekey.persistence.model.FeedbackModel
 import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.MetricModel
@@ -34,7 +35,8 @@ class DbManager(
         val userRegistrationTokenDao: Dao<UserRegistrationTokenModel, String>,
         val householdDao: Dao<HouseholdModel, String>,
         val migrationDao: Dao<DbMigrationModel, Int>,
-        val metricDao: Dao<MetricModel, Long>
+        val metricDao: Dao<MetricModel, Long>,
+        val feedbackDao: Dao<FeedbackModel, Int>
 ) {
     final var ready = false
         private set
@@ -49,7 +51,8 @@ class DbManager(
                 userDao,
                 userRegistrationTokenDao,
                 householdDao,
-                metricDao
+                metricDao,
+                feedbackDao
         )
 
         val newTables = createTables(nonMigrationDaos)
@@ -75,6 +78,7 @@ class DbManager(
         TableUtils.createTableIfNotExists(connectionSource, UserRegistrationTokenModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, HouseholdModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, MetricModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, FeedbackModel::class.java)
 
         return missingTables
     }
