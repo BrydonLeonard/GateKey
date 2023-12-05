@@ -44,7 +44,7 @@ class VoiceControllerTest {
     ])
     fun authorizePhoneCaller(allowedCallers: String) {
         val config = getConfig(allowedCallers)
-        val subject = VoiceController(keyManager, conversationHandler, telegramBot, config, metricPublisher)
+        val subject = VoiceController(keyManager, config, metricPublisher, emptyList())
         `when`(request.remoteAddr).thenReturn("192.168.100.100")
 
         assertThat(subject.authorizePhoneCaller("+27123334444", request)).isTrue()
@@ -61,7 +61,7 @@ class VoiceControllerTest {
     ])
     fun rejectPhoneCaller(allowedCallers: String) {
         val config = getConfig(allowedCallers)
-        val subject = VoiceController(keyManager, conversationHandler, telegramBot, config, metricPublisher)
+        val subject = VoiceController(keyManager, config, metricPublisher, emptyList())
         `when`(request.remoteAddr).thenReturn("192.168.100.100")
 
         assertThat(subject.authorizePhoneCaller("+27123332222", request)).isFalse()

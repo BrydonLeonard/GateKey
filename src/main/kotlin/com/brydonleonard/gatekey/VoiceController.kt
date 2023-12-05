@@ -1,8 +1,8 @@
 package com.brydonleonard.gatekey
 
-import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.metrics.MetricPublisher
+import com.brydonleonard.gatekey.notification.Notifier
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.twilio.security.RequestValidator
 import com.twilio.twiml.VoiceResponse
@@ -28,10 +28,9 @@ private const val TWILIO_SIGNATURE_HEADER_NAME = "X-Twilio-Signature"
 @RestController
 class VoiceController(
         val keyManager: KeyManager,
-        val conversationHandler: ConversationHandler,
-        val telegramBot: TelegramBot,
         val config: Config,
-        val metricPublisher: MetricPublisher
+        val metricPublisher: MetricPublisher,
+        val notifiers: List<Notifier>
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
@@ -78,9 +77,7 @@ class VoiceController(
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
 
                 // Notify all users that the gate has been opened
-                conversationHandler.getAllChatsForHousehold(authorizedKey.household).forEach {
-                    telegramBot.sendMessage(it, "Opening the gate for ${authorizedKey.assignee}")
-                }
+                notifiers.forEach { it.notify(authorizedKey) }
             }
         }
 
