@@ -14,8 +14,15 @@ class Config(
         @Value("\${GATE_KEY_TWILIO_TOKEN}")
         val twilioAuthToken: String,
         @Value("\${GATE_KEY_DEFAULT_HOUSEHOLD:default}")
-        val defaultHouseholdId: String
-
+        val defaultHouseholdId: String,
+        @Value("\${GATE_KEY_MQTT_ENDPOINT}")
+        val mqttBrokerEndpoint: String,
+        @Value("\${GATE_KEY_MQTT_PORT:1883}")
+        val mqttPort: String,
+        @Value("\${GATE_KEY_MQTT_ADMIN_USER}")
+        val mqttAdminUser: String,
+        @Value("\${GATE_KEY_MQTT_ADMIN_PASSWORD}")
+        val mqttAdminPassword: String,
 ) {
     val allowedCallers: Set<String> by lazy { allowedCallersRaw.split(",").toSet() }
 }

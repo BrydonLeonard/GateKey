@@ -27,6 +27,7 @@ java {
 repositories {
     mavenCentral()
     maven("https://jitpack.io")
+    maven("https://repo.eclipse.org/content/repositories/paho-releases/")
 }
 
 dependencies {
@@ -40,6 +41,7 @@ dependencies {
     implementation("com.twilio.sdk:twilio:9.12.0")
     implementation(kotlin("reflect"))
     implementation("com.j256.ormlite:ormlite-jdbc:6.1")
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -7,6 +7,7 @@ import com.brydonleonard.gatekey.persistence.model.FeedbackModel
 import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.MetricModel
+import com.brydonleonard.gatekey.persistence.model.MqttTopicModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
 import com.j256.ormlite.dao.Dao
@@ -53,4 +54,8 @@ class SpringConfig {
     @Bean
     fun householdDao(connectionSource: ConnectionSource): Dao<HouseholdModel, String> =
             DaoManager.createDao(connectionSource, HouseholdModel::class.java)
+
+    @Bean
+    fun mqttTopicDao(connectionSource: ConnectionSource): Dao<MqttTopicModel, String> =
+            DaoManager.createDao(connectionSource, MqttTopicModel::class.java)
 }
