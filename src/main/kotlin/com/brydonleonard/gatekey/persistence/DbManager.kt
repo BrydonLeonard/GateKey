@@ -9,6 +9,7 @@ import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.MetricModel
 import com.brydonleonard.gatekey.persistence.model.MqttTopicModel
+import com.brydonleonard.gatekey.persistence.model.MqttDeviceModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
 import com.j256.ormlite.dao.Dao
@@ -38,7 +39,8 @@ class DbManager(
         val migrationDao: Dao<DbMigrationModel, Int>,
         val metricDao: Dao<MetricModel, Long>,
         val feedbackDao: Dao<FeedbackModel, Int>,
-        val mqttTopicDao: Dao<MqttTopicModel, String>
+        val mqttTopicDao: Dao<MqttTopicModel, String>,
+        val notificationDeviceDao: Dao<MqttDeviceModel, String>
 ) {
     final var ready = false
         private set
@@ -55,7 +57,8 @@ class DbManager(
                 householdDao,
                 metricDao,
                 feedbackDao,
-                mqttTopicDao
+                mqttTopicDao,
+                notificationDeviceDao
         )
 
         val newTables = createTables(nonMigrationDaos)
@@ -83,6 +86,7 @@ class DbManager(
         TableUtils.createTableIfNotExists(connectionSource, MetricModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, FeedbackModel::class.java)
         TableUtils.createTableIfNotExists(connectionSource, MqttTopicModel::class.java)
+        TableUtils.createTableIfNotExists(connectionSource, MqttDeviceModel::class.java)
 
         return missingTables
     }

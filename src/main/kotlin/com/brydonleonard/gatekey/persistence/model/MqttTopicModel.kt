@@ -15,6 +15,6 @@ class MqttTopicModel(
 
     enum class Fields(val columnName: String) {
         TOPIC("topic"),
-        HOUSEHOLD("household_id")
+        HOUSEHOLD("household_id"),
     }
 }

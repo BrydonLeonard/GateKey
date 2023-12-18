@@ -1,4 +1,4 @@
-package com.brydonleonard.gatekey.notification
+package com.brydonleonard.gatekey.mqtt
 
 import com.brydonleonard.gatekey.Config
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -14,6 +14,10 @@ private const val QOS_EXACTLY_ONCE = 2
 
 @Component
 class MqttClient(private val config: Config) {
+    val enabled = config.mqttBrokerEndpoint != null &&
+            config.mqttPort != null &&
+            config.mqttAdminUser != null &&
+            config.mqttAdminPassword != null
     private val logger = KotlinLogging.logger(MqttClient::class.qualifiedName!!)
     private val client = MqttClient(
             "${config.mqttBrokerEndpoint}:${config.mqttPort}",
@@ -21,15 +25,13 @@ class MqttClient(private val config: Config) {
             MemoryPersistence()
     )
 
-    init {
-        logger.info {
-            """
-            MqttClient config: ${config.mqttBrokerEndpoint}, ${config.mqttAdminUser}, ${config.mqttAdminPassword}, ${config.mqttPort}
-        """.trimIndent()
-        }
-    }
-
+    // TODO secure client. This is sending plaintext
     fun publish(topic: String, message: String) {
+        if (!enabled) {
+            return
+        }
+
+        logger.debug { "Publishing $message to $topic" }
         withRetries(4) {
             try {
                 val connOpts = MqttConnectOptions()

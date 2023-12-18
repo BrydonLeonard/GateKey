@@ -139,11 +139,30 @@ $ sudo docker run \
   brydonleonard/gate_key:mainline
 ```
 
+> If you want to test your MQTT notifications locally, check out the config keys prefixed with `GATE_KEY_MQTT`
+> in `com/brydonleonard/gatekey/Config`.
+
 6. If you want GateKey to start automatically and restart when it crashes, add the restart config to your `run` command:
 
 ```bash
 --restart unless-stopped
 ```
+
+## GateKey device creation
+
+If you'd like to add services that are notified via MQTT when the gate opens, take a look at the MqttDeviceRegisterer.
+New devices go through a passwordless handshake by requiring users to explicitly add them to their households. The
+process
+looks something like:
+
+1. Device polls the GateKey server. It's registered as a polling device, but gets no MQTT subscription creds yet.
+2. A user sends a request to the `/addDevice` action in the telegram app and passes in the ID of the new device.
+3. The device is authorized with the user's house and credentials are issued.
+4. The device polls again and receives a set of credentials and an MQTT topic ID.
+5. The device uses those credentials to subscribe to the topic.
+
+At that point, you can do whatever you want with the gate open notifications. I made a little box with an ESP32 and a
+speaker than plays cute noises whenever someone arrives.
 
 ## Usage
 

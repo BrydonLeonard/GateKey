@@ -2,6 +2,7 @@ package com.brydonleonard.gatekey
 
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.metrics.MetricPublisher
+import com.brydonleonard.gatekey.notification.NotificationSender
 import com.brydonleonard.gatekey.notification.Notifier
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.twilio.security.RequestValidator
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.InetAddress
+import java.util.concurrent.BlockingQueue
 
 
 private const val TWILIO_SIGNATURE_HEADER_NAME = "X-Twilio-Signature"
@@ -30,7 +32,7 @@ class VoiceController(
         val keyManager: KeyManager,
         val config: Config,
         val metricPublisher: MetricPublisher,
-        val notifiers: List<Notifier>
+        val notificationQueue: BlockingQueue<NotificationSender.Notification>
 ) {
     private val logger = KotlinLogging.logger(VoiceController::class.qualifiedName!!)
 
@@ -77,7 +79,11 @@ class VoiceController(
                 logger.info { "Opening the gate for ${authorizedKey.assignee}" }
 
                 // Notify all users that the gate has been opened
-                notifiers.forEach { it.notify(authorizedKey) }
+                notificationQueue.put(
+                        NotificationSender.Notification(
+                                "Opening the gate for ${authorizedKey.assignee}", authorizedKey.household
+                        )
+                )
             }
         }
 

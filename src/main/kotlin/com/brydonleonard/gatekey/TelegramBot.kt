@@ -7,6 +7,8 @@ import com.brydonleonard.gatekey.conversation.CallbackManager
 import com.brydonleonard.gatekey.conversation.ConversationHandler
 import com.brydonleonard.gatekey.keys.KeyManager
 import com.brydonleonard.gatekey.metrics.MetricPublisher
+import com.brydonleonard.gatekey.mqtt.MqttDeviceRegistrationResponse
+import com.brydonleonard.gatekey.mqtt.MqttDeviceRegisterer
 import com.brydonleonard.gatekey.persistence.model.ConversationStepModel
 import com.brydonleonard.gatekey.persistence.model.ConversationStepType
 import com.brydonleonard.gatekey.persistence.model.UserModel
@@ -68,7 +70,8 @@ class TelegramBot(
         val conversationHandler: ConversationHandler,
         val config: Config,
         val metricPublisher: MetricPublisher,
-        val feedbackStore: FeedbackStore
+        val feedbackStore: FeedbackStore,
+        val mqttDeviceRegisterer: MqttDeviceRegisterer
 ) {
     private val logger = KotlinLogging.logger(TelegramBot::class.qualifiedName!!)
 
@@ -159,6 +162,16 @@ class TelegramBot(
                         awaitResponse(
                                 ConversationStepType.CREATE_HOUSEHOLD,
                                 "What should the household's ID be?"
+                        )
+                    }
+                    return@command
+                }
+
+                command("addDevice") {
+                    authorized(setOf(Permissions.ADD_HOUSEHOLD)) {
+                        awaitResponse(
+                                ConversationStepType.ADD_DEVICE,
+                                "What is the device's ID?"
                         )
                     }
                     return@command
@@ -278,6 +291,7 @@ class TelegramBot(
             ConversationStepType.CREATE_SINGLE_USE_TOKEN -> handleCreateSingleUseTokenConversation(user, conversationStep)
             ConversationStepType.CREATE_HOUSEHOLD -> handleCreateHouseholdConversation(user, conversationStep)
             ConversationStepType.SEND_FEEDBACK -> handleSendFeedbackConversation(user, conversationStep)
+            ConversationStepType.ADD_DEVICE -> handleAddDeviceConversation(user, conversationStep)
         }
 
         return true
@@ -326,6 +340,20 @@ class TelegramBot(
         feedbackStore.putFeedback(feedbackMessage, user)
 
         sendStandardMessage("Thank you for your feedback! It's been submitted.", user)
+    }
+
+    private fun MessageHandlerEnvironment.handleAddDeviceConversation(user: UserModel, conversationStep: ConversationStepModel) {
+        conversationHandler.stopAwaiting(conversationStep)
+
+        val response = mqttDeviceRegisterer.handleRequestedDevice(this.message.text!!, user.household)
+
+        val message = when (response.outcome) {
+            MqttDeviceRegistrationResponse.Outcomes.REGISTERED -> "The device '${this.message.text}' has been registered"
+            MqttDeviceRegistrationResponse.Outcomes.ERROR -> "Something went wrong while registering the device"
+            MqttDeviceRegistrationResponse.Outcomes.ACCEPTED -> "Waiting for the device to be registered"
+        }
+
+        sendStandardMessage(message, user)
     }
 
     private fun CallbackQueryHandlerEnvironment.handleDeleteKeyCallback() {
@@ -455,12 +483,12 @@ class TelegramBot(
     private fun keyboard(user: UserModel): KeyboardReplyMarkup {
         val lastRow = listOf<KeyboardButton>().let {
             if (user.permissions.contains(Permissions.ADD_HOUSEHOLD)) {
-                it + KeyboardButton("/addHousehold")
+                it + KeyboardButton("/addHousehold") + KeyboardButton("/addDevice")
             } else {
                 it
             }
         }.let {
-            if (user.permissions.contains(Permissions.ADD_HOUSEHOLD)) {
+            if (user.permissions.contains(Permissions.ADD_USER)) {
                 it + KeyboardButton("/addUser")
             } else {
                 it

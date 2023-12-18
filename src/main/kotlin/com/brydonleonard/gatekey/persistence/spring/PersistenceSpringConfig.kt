@@ -8,6 +8,7 @@ import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 import com.brydonleonard.gatekey.persistence.model.KeyModel
 import com.brydonleonard.gatekey.persistence.model.MetricModel
 import com.brydonleonard.gatekey.persistence.model.MqttTopicModel
+import com.brydonleonard.gatekey.persistence.model.MqttDeviceModel
 import com.brydonleonard.gatekey.persistence.model.UserModel
 import com.brydonleonard.gatekey.persistence.model.UserRegistrationTokenModel
 import com.j256.ormlite.dao.Dao
@@ -18,7 +19,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class SpringConfig {
+class PersistenceSpringConfig {
     @Bean(destroyMethod = "close")
     fun connectionSource(config: Config): JdbcPooledConnectionSource =
             JdbcPooledConnectionSource("jdbc:sqlite:${config.dbPath}")
@@ -58,4 +59,8 @@ class SpringConfig {
     @Bean
     fun mqttTopicDao(connectionSource: ConnectionSource): Dao<MqttTopicModel, String> =
             DaoManager.createDao(connectionSource, MqttTopicModel::class.java)
+
+    @Bean
+    fun deviceRegistrationDao(connectionSource: ConnectionSource): Dao<MqttDeviceModel, String> =
+            DaoManager.createDao(connectionSource, MqttDeviceModel::class.java)
 }

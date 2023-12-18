@@ -7,15 +7,22 @@ import org.springframework.stereotype.Component
 
 @Component
 class MqttTopicStore(private val dbManager: DbManager) {
-    fun addTopic(household: HouseholdModel, topic: String) {
+    fun setTopic(household: HouseholdModel, topic: String) {
+        // We only want one topic per household (for now at least)
+        val deleteBuilder = dbManager.mqttTopicDao.deleteBuilder()
+        deleteBuilder.where()
+                .eq(MqttTopicModel.Fields.HOUSEHOLD.columnName, household.id)
+        deleteBuilder.delete()
+
         dbManager.mqttTopicDao.create(
                 MqttTopicModel(topic, household)
         )
     }
 
-    fun getTopicsForHousehold(household: HouseholdModel): List<MqttTopicModel> {
+    fun getTopicForHousehold(household: HouseholdModel): MqttTopicModel? {
         return dbManager.mqttTopicDao.queryBuilder().where()
                 .eq(MqttTopicModel.Fields.HOUSEHOLD.columnName, household)
                 .query()
+                .firstOrNull()
     }
 }

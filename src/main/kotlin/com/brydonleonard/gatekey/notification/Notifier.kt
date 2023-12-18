@@ -1,7 +1,13 @@
 package com.brydonleonard.gatekey.notification
 
-import com.brydonleonard.gatekey.persistence.model.KeyModel
+import com.brydonleonard.gatekey.persistence.model.HouseholdModel
 
+/**
+ * Notifiers are used to send messages to GateKey users when _things_ happen (such as a gate opening).
+ */
 interface Notifier {
-    fun notify(authorizedKey: KeyModel)
+    /**
+     * For generic notifications.
+     */
+    fun notify(message: String, household: HouseholdModel)
 }

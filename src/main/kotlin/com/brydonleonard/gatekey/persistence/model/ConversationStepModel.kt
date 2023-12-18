@@ -28,4 +28,5 @@ enum class ConversationStepType {
     CREATE_SINGLE_USE_TOKEN,
     CREATE_HOUSEHOLD,
     SEND_FEEDBACK,
+    ADD_DEVICE,
 }
