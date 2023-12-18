@@ -16,13 +16,13 @@ class Config(
         @Value("\${GATE_KEY_DEFAULT_HOUSEHOLD:default}")
         val defaultHouseholdId: String,
         @Value("\${GATE_KEY_MQTT_ENDPOINT}")
-        val mqttBrokerEndpoint: String,
+        val mqttBrokerEndpoint: String?,
         @Value("\${GATE_KEY_MQTT_PORT:1883}")
-        val mqttPort: String,
+        val mqttPort: String?,
         @Value("\${GATE_KEY_MQTT_ADMIN_USER}")
-        val mqttAdminUser: String,
+        val mqttAdminUser: String?,
         @Value("\${GATE_KEY_MQTT_ADMIN_PASSWORD}")
-        val mqttAdminPassword: String,
+        val mqttAdminPassword: String?,
 ) {
     val allowedCallers: Set<String> by lazy { allowedCallersRaw.split(",").toSet() }
 }

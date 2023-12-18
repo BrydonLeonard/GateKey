@@ -37,7 +37,7 @@ class MqttClient(private val config: Config) {
                 val connOpts = MqttConnectOptions()
                 connOpts.isCleanSession = true
                 connOpts.userName = config.mqttAdminUser
-                connOpts.password = config.mqttAdminPassword.toCharArray()
+                connOpts.password = config.mqttAdminPassword!!.toCharArray()
                 client.connect(connOpts)
 
                 val mqttMessage = MqttMessage(message.toByteArray())

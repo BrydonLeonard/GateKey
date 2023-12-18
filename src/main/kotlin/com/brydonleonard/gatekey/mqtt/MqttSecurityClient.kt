@@ -12,7 +12,8 @@ class MqttSecurityClient(
 ) {
     // TODO: Actually implement user creation. For now, this just returns the admin user and password to everyone.
     fun addOrReplaceDeviceUser(userId: String, topic: String): MqttUser {
-        return MqttUser(config.mqttAdminUser, config.mqttAdminPassword)
+        // Assuming that these are non-null for now, since this won't be called unless the device registerer is active
+        return MqttUser(config.mqttAdminUser!!, config.mqttAdminPassword!!)
     }
 
     fun revokeDeviceUsersFor(userId: String) {

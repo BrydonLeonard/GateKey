@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations.openMocks
+import java.util.concurrent.LinkedBlockingQueue
 
 class VoiceControllerTest {
     @Mock
@@ -44,7 +45,7 @@ class VoiceControllerTest {
     ])
     fun authorizePhoneCaller(allowedCallers: String) {
         val config = getConfig(allowedCallers)
-        val subject = VoiceController(keyManager, config, metricPublisher, emptyList())
+        val subject = VoiceController(keyManager, config, metricPublisher, LinkedBlockingQueue())
         `when`(request.remoteAddr).thenReturn("192.168.100.100")
 
         assertThat(subject.authorizePhoneCaller("+27123334444", request)).isTrue()
@@ -61,7 +62,7 @@ class VoiceControllerTest {
     ])
     fun rejectPhoneCaller(allowedCallers: String) {
         val config = getConfig(allowedCallers)
-        val subject = VoiceController(keyManager, config, metricPublisher, emptyList())
+        val subject = VoiceController(keyManager, config, metricPublisher, LinkedBlockingQueue())
         `when`(request.remoteAddr).thenReturn("192.168.100.100")
 
         assertThat(subject.authorizePhoneCaller("+27123332222", request)).isFalse()
@@ -72,6 +73,10 @@ class VoiceControllerTest {
             "./foo.db",
             "123",
             "123",
-            "default"
+            "default",
+            null,
+            null,
+            null,
+            null
     )
 }
