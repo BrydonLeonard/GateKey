@@ -80,6 +80,10 @@ jobs:
               --env GATE_KEY_TELEGRAM_BOT_TOKEN=${{ secrets.GATE_KEY_TELEGRAM_BOT_TOKEN }} \
               --env GATE_KEY_CERT_PASSWORD=${{ secrets.GATE_KEY_CERT_PASSWORD }} \
               --env GATE_KEY_TWILIO_TOKEN=${{ secrets.GATE_KEY_TWILIO_TOKEN }} \
+              --env GATE_KEY_MQTT_ENDPOINT=${{ secrets.GATE_KEY_MQTT_ENDPOINT }} \
+              --env GATE_KEY_MQTT_PORT=${{ secrets.GATE_KEY_MQTT_PORT }} \
+              --env GATE_KEY_MQTT_ADMIN_USER=${{ secrets.GATE_KEY_MQTT_ADMIN_USER }} \
+              --env GATE_KEY_MQTT_ADMIN_PASSWORD=${{ secrets.GATE_KEY_MQTT_ADMIN_PASSWORD }} \
               --volume GateKeyVolume:/persistent \
               --detach \
               --publish 443:443 \
